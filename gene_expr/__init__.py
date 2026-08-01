@@ -17,8 +17,18 @@ class GeneExprBlockState(DynamicsBlockStateBase):
     with Gaussian Onsager-Machlup likelihood (model.md & inference_article__method_breakdown.md).
     """
     def __init__(self, s, g=None, self_loops=True, dt=1.0, **kwargs):
+        q = 3
+        theta = kwargs.pop("theta", [np.log(0.5), np.log(2.0), np.log(0.05)])
+        theta_range = kwargs.pop("theta_range", [(-5.0, 3.0), (-3.0, 4.0), (-8.0, 1.0)])
+        tdelta = kwargs.pop("tdelta", [1e-8] * q)
+        tdelta_min = kwargs.pop("tdelta_min", [1e-8] * q)
+        disable_tdist = kwargs.pop("disable_tdist", True)
+
         DynamicsBlockStateBase.__init__(
-            self, s, g=g, self_loops=self_loops,
+            self, s, g=g, self_loops=self_loops, q_t=q,
+            theta=theta, theta_range=theta_range,
+            tdelta=tdelta, tdelta_min=tdelta_min,
+            disable_tdist=disable_tdist,
             **dict(dict(directed=True, dt=dt), **kwargs)
         )
         self.theta_first = False

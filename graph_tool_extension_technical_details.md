@@ -156,14 +156,15 @@ To make the C++ extension seamless for users, we implemented `GeneExprBlockState
 class GeneExprBlockState(DynamicsBlockStateBase):
     def __init__(self, s, g=None, self_loops=True, dt=1.0, **kwargs):
         # Default initialization: 3 node parameters per vertex (log(gamma), log(V), log(D))
-        kwargs.setdefault("theta", [0.0, 0.0, 0.0])  # exp(0) = 1.0 initial values
-        kwargs.setdefault("theta_range", [
-            (-np.inf, np.inf),
-            (-np.inf, np.inf),
-            (-np.inf, np.inf),
-        ])
+        q = 3
+        kwargs.setdefault("theta", [np.log(0.5), np.log(2.0), np.log(0.05)])
+        kwargs.setdefault("theta_range", [(-5.0, 3.0), (-3.0, 4.0), (-8.0, 1.0)])
+        kwargs.setdefault("tdelta", [1e-8] * q)
+        kwargs.setdefault("tdelta_min", [1e-8] * q)
+        kwargs.setdefault("disable_tdist", True)
+
         DynamicsBlockStateBase.__init__(
-            self, s, g=g, self_loops=self_loops,
+            self, s, g=g, self_loops=self_loops, q_t=q,
             **dict(dict(directed=True, dt=dt), **kwargs)
         )
         self.theta_first = False
@@ -174,7 +175,8 @@ class GeneExprBlockState(DynamicsBlockStateBase):
             self._state, self.ot, self.os, self.oactive, self.params
         )
 ```
-- **Why `theta = [0.0, 0.0, 0.0]`**: Informs `DynamicsBlockStateBase` that each node requires 3 learnable parameters. Initializing at `0.0` sets starting physical rates $\gamma_0 = V_0 = D_0 = 1.0$.
+- **Why `q_t = 3` and `theta` initial values**: Informs `DynamicsBlockStateBase` that each node requires 3 learnable parameters (`log(gamma)`, `log(V)`, `log(D)`).
+- **Why `tdelta = [1e-8] * q` and `tdelta_min = [1e-8] * q` are CRITICAL**: By default, `DynamicsBlockStateBase.__init__` initializes `tdelta` and `tdelta_min` as single-element lists (`[1e-8]`), which are passed to the C++ member vector `std::vector<double> _tdelta`. When `q_t > 1` (as in our 3-parameter GRN model), any evaluation of the Laplace/L1 prior (`tl1`) or parameter bisection in C++ (`dynamics_util.hh::qlaplace_lprob`) accesses `_tdelta[1]` and `_tdelta[2]`. If `_tdelta` was not explicitly dimensioned to `q_t=3` in Python, C++ performs an out-of-bounds read on `_tdelta`, retrieving uninitialized memory or `0.0`. This causes `qlaplace_lprob(x, tl1[l], _tdelta[l], false)` to evaluate to `-inf`, leading to `state.entropy()` returning unphysical `inf` values. Explicitly providing `tdelta=[1e-8]*3` and `tdelta_min=[1e-8]*3` prevents out-of-bounds reads and ensures numerically stable, linear entropy progression across all time series lengths.
 
 ---
 
