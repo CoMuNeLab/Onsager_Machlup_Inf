@@ -24,6 +24,12 @@ class GeneExprBlockState(DynamicsBlockStateBase):
         tdelta_min = kwargs.pop("tdelta_min", [1e-8] * q)
         disable_tdist = kwargs.pop("disable_tdist", True)
 
+        if isinstance(s, (list, tuple)) and len(s) > 0 and isinstance(s[0], np.ndarray):
+            N = s[0].shape[0]
+            if g is None:
+                g = gt.Graph(N, directed=True)
+            s = [g.new_vp("vector<double>", vals=arr) for arr in s]
+
         DynamicsBlockStateBase.__init__(
             self, s, g=g, self_loops=self_loops, q_t=q,
             theta=theta, theta_range=theta_range,

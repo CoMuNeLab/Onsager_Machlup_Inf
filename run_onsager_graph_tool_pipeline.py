@@ -82,6 +82,85 @@ def simulate_grn_sde_trajectory(W_true, T_total=500.0, dt=0.01, dt_meas=1.0,
     # Shape: (N, M) where M is the number of time measurements
     return np.array(measured_trajectory).T, dt_meas
 
+def simulate_grn_sde_pairs(W_true, M=100, dt_sim=0.001, dt_sample=0.5, dt_meas=0.1,
+                           d=0.5, V=2.0, noise_std=0.15, seed=42,
+                           t_window=(0.0, 10.0)):
+    """
+    Simulates continuous gene expression trajectories via Euler-Maruyama SDE:
+        dx_i(t) = [-d * x_i(t) + V * sigma(sum_j W_{ij} x_j(t))] dt + noise_std * dB_i(t)
+    and harvests state-velocity observation pairs (x(t_m), x(t_m + dt_meas)) such that:
+      1. Time intervals are decoupled:
+         - dt_sim: Small numerical integration step (default 0.001) for accurate SDE simulation.
+         - dt_sample: Interval between successive harvested candidate observation times along a trajectory.
+         - dt_meas: Measurement interval used to estimate velocity/transition (x(t_m) -> x(t_m + dt_meas)).
+      2. Invariant Base Distribution & Regime Control:
+         - Samples are harvested uniformly across t_window = (t_start, t_end).
+         - Enables isolating dynamical regimes: transient/relaxation (e.g. 0.0 to 4.0),
+           stationary/equilibrium (e.g. 10.0 to 20.0), or mixed.
+      3. Multi-Trajectory Spawning:
+         - If M exceeds the number of sample points available in a single trajectory window,
+           additional independent trajectories are generated from fresh initial conditions x(0) ~ U(0.5, 2.0).
+         - Ensures that changing M or dt_meas never alters the state space distribution of sampled points.
+
+    Returns:
+        pairs: list of M numpy arrays of shape (N, 2), where column 0 is x(t_m) and column 1 is x(t_m + dt_meas).
+        dt_meas: float, the measurement interval.
+    """
+    np.random.seed(seed)
+    N = W_true.shape[0]
+    t_start, t_end = t_window
+    if t_end <= t_start:
+        raise ValueError("t_window[1] (t_end) must be strictly greater than t_window[0] (t_start)")
+
+    # Candidate observation times within t_window at step dt_sample
+    sample_times = np.arange(t_start, t_end + 1e-9, dt_sample)
+    if len(sample_times) == 0:
+        sample_times = np.array([t_start])
+    K = len(sample_times)
+
+    # Number of independent trajectories required to harvest M pairs
+    n_trajectories = int(np.ceil(M / K))
+
+    # We integrate each trajectory up to T_max = t_end + dt_meas
+    T_max = t_end + dt_meas
+    n_steps = int(np.round(T_max / dt_sim))
+    sqrt_dt_noise = noise_std * np.sqrt(dt_sim)
+
+    # Precompute step indices where sample_times and sample_times + dt_meas occur
+    sample_step_indices = [int(np.round(t / dt_sim)) for t in sample_times]
+    next_step_indices = [int(np.round((t + dt_meas) / dt_sim)) for t in sample_times]
+
+    all_pairs = []
+
+    for traj_idx in range(n_trajectories):
+        # Deterministic per-trajectory random generator ensures 100% invariance
+        # of base states across different dt_meas and different M values.
+        rng = np.random.RandomState(seed + traj_idx * 10007)
+        x = rng.uniform(0.5, 2.0, size=N).astype(np.float64)
+        # Store trajectory history at required step indices
+        history = {}
+        history[0] = x.copy()
+
+        for step in range(1, n_steps + 1):
+            x_clipped = np.maximum(x, 0.0)
+            prod = sigmoid(W_true @ x_clipped)
+            drift = -d * x_clipped + V * prod
+            noise = rng.normal(0.0, 1.0, size=N)
+            x = np.maximum(x + dt_sim * drift + sqrt_dt_noise * noise, 0.01)
+
+            if step in sample_step_indices or step in next_step_indices:
+                history[step] = x.copy()
+
+        for s_idx, n_idx in zip(sample_step_indices, next_step_indices):
+            pair = np.column_stack([history[s_idx], history[n_idx]])
+            all_pairs.append(pair)
+            if len(all_pairs) == M:
+                break
+        if len(all_pairs) == M:
+            break
+
+    return all_pairs, dt_meas
+
 # =========================================================================
 # Stage 3: Evaluation Metrics (Structure Reconstruction vs Ground Truth)
 # =========================================================================

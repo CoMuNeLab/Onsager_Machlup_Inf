@@ -57,5 +57,28 @@ def main():
     print("\nSUCCESS! Gene expression SDE Bayesian inference extension works cleanly with graph-tool!")
     print("=" * 60)
 
+    test_simulate_grn_sde_pairs_invariance()
+
+def test_simulate_grn_sde_pairs_invariance():
+    from run_onsager_graph_tool_pipeline import get_benchmark_10gene_network, simulate_grn_sde_pairs
+    print("\n" + "=" * 60)
+    print("Testing Invariant State-Velocity Pair Sampling (`simulate_grn_sde_pairs`)")
+    print("=" * 60)
+    W = get_benchmark_10gene_network()
+    pairs_dt01, dt_meas1 = simulate_grn_sde_pairs(W, M=30, dt_sim=0.001, dt_sample=0.5, dt_meas=0.1, seed=42)
+    pairs_dt05, dt_meas2 = simulate_grn_sde_pairs(W, M=30, dt_sim=0.001, dt_sample=0.5, dt_meas=0.5, seed=42)
+
+    for idx in range(30):
+        assert np.allclose(pairs_dt01[idx][:, 0], pairs_dt05[idx][:, 0]), f"Mismatch at pair idx {idx}"
+    print("✓ Base state invariance verified across dt_meas=0.1 and dt_meas=0.5!")
+
+    state = GeneExprBlockState(pairs_dt01, dt=dt_meas1)
+    S_init = state.entropy()
+    print(f"✓ GeneExprBlockState instantiated with list of pairs. Initial entropy = {S_init:.4f}")
+    dS, nmoves = state.mcmc_sweep(niter=5)
+    print(f"✓ MCMC sweep completed on pairs: dS = {dS:.4f}, accepted moves = {nmoves}")
+    print("SUCCESS! All pair invariance and MCMC tests passed!")
+    print("=" * 60)
+
 if __name__ == "__main__":
     main()
