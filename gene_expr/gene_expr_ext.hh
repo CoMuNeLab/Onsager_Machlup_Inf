@@ -40,11 +40,16 @@ public:
         if (!std::isfinite(x)) x = 1.0;
         if (!std::isfinite(nx)) nx = 1.0;
 
+        // Ensure x is strictly positive to prevent log(0) and division by zero
+        double x_safe = std::max(0.01, x); 
+
         double sig_m = 1.0 / (1.0 + exp(-m));
         double dt = std::max(1e-6, _dt);
         double mu = x + dt * (-gamma * x + V * sig_m);
-        double s = sqrt(D * dt);
-        double log_s = 0.5 * (lD + log(dt));
+        
+        // UPGRADE: Multiplicative CIR noise
+        double s = sqrt(D * x_safe * dt);
+        double log_s = 0.5 * (lD + log(x_safe) + log(dt));
 
         double res = norm_lpdf(nx, mu, s, log_s);
         if (!std::isfinite(res) || std::abs(res) > 1e10)
