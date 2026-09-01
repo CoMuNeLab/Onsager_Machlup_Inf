@@ -27,7 +27,7 @@ class GRNInferenceState:
             
         self.N, self.M = self.X_t.shape
         
-        if theta is None:
+        if theta is None: # Default initialization
             self.theta = np.zeros((self.N, 3))
             self.theta[:, 0] = np.log(0.5)  # gamma
             self.theta[:, 1] = np.log(2.0)  # V
@@ -35,11 +35,11 @@ class GRNInferenceState:
         else:
             self.theta = np.array(theta)
             
-        # Network state
+        # Network state, initially empty
         self.W = np.zeros((self.N, self.N))
         self.E = 0
         
-        # Category state
+        # Category state, initially empty
         self.K = 0
         self.z = [] # list of floats
         self.m_counts = [] # list of ints
@@ -198,3 +198,19 @@ class GRNInferenceState:
                 self.edge_to_cat[edge] = old_to_new_k[old_k]
             else:
                 del self.edge_to_cat[edge]
+
+    def get_delta_entropy_theta(self, i, new_theta):
+        """
+        Computes the change in entropy if we change the parameters of node i.
+        Since we assume a uniform prior over theta within its bounds,
+        the delta entropy is exactly the negative delta likelihood.
+        """
+        new_node_ll = self._calc_node_ll(i, theta_i=new_theta)
+        delta_ll = new_node_ll - self.node_ll[i]
+        return -delta_ll
+
+    def apply_theta_update(self, i, new_theta):
+        """Applies the parameter update to node i."""
+        self.theta[i, :] = new_theta
+        self.node_ll[i] = self._calc_node_ll(i)
+

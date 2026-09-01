@@ -28,7 +28,7 @@ def compute_mdl_prior(N, E, K, m_counts, z_values, lambda_val=1.0, delta=1e-8):
                    # Wait, for empty graph E=0, K=0, the formula needs careful limits.
                    # Let's handle E=0 properly.
     
-    N_pairs = N * (N - 1)
+    N_pairs = N * (N - 1) # Total possible directed edges in a graph with N nodes (excluding self-loops)
     
     if E == 0:
         # If E=0, K must be 0.
