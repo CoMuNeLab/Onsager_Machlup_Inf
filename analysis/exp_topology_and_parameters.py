@@ -23,7 +23,7 @@ if _proj_dir not in sys.path:
 
 import graph_tool.all as gt
 from gene_expr import GeneExprBlockState
-from run_onsager_graph_tool_pipeline import simulate_grn_sde_trajectory
+from analysis.run_onsager_graph_tool_pipeline import simulate_grn_sde_trajectory
 
 def generate_base_topology(N, topo_type, density, seed):
     """

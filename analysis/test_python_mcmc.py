@@ -8,7 +8,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from inference_python import GRNInferenceState, mcmc_sweep
-from run_onsager_graph_tool_pipeline import get_benchmark_10gene_network, simulate_grn_sde_trajectory
+from analysis.run_onsager_graph_tool_pipeline import get_benchmark_10gene_network, simulate_grn_sde_trajectory
 
 def compute_metrics(W_true, W_pred):
     mask = ~np.eye(W_true.shape[0], dtype=bool)

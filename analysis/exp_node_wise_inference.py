@@ -26,7 +26,7 @@ if _proj_dir not in sys.path:
     sys.path.insert(0, _proj_dir)
 
 from gene_expr import GeneExprBlockState
-from run_onsager_graph_tool_pipeline import simulate_grn_sde_pairs, sigmoid
+from analysis.run_onsager_graph_tool_pipeline import simulate_grn_sde_pairs, sigmoid
 
 def generate_network(N, topo_type):
     """Generates a random signed adjacency matrix based on topology type."""

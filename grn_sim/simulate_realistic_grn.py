@@ -136,7 +136,7 @@ def main():
     _proj_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if _proj_dir not in sys.path:
         sys.path.insert(0, _proj_dir)
-    from exp_data_trajectories import run_single_experiment
+    from analysis.exp_data_trajectories import run_single_experiment
     
     # Transpose X to shape (N, M) as required by the pipeline
     X_T = X.T

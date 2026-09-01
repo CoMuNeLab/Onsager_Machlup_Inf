@@ -18,7 +18,7 @@ if _proj_dir not in sys.path:
 
 import graph_tool.all as gt
 from gene_expr import GeneExprBlockState
-from run_onsager_graph_tool_pipeline import get_benchmark_10gene_network, simulate_grn_sde_trajectory
+from analysis.run_onsager_graph_tool_pipeline import get_benchmark_10gene_network, simulate_grn_sde_trajectory
 
 from sklearn.metrics import (
     roc_auc_score,

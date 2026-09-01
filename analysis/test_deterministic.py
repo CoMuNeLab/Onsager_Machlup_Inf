@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 
-from exp_information_content import generate_network, simulate_trajectory
+from analysis.exp_information_content import generate_network, simulate_trajectory
 
 N = 20
 topo = 'ER'

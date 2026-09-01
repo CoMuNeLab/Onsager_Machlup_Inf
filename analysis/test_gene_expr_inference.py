@@ -60,7 +60,7 @@ def main():
     test_simulate_grn_sde_pairs_invariance()
 
 def test_simulate_grn_sde_pairs_invariance():
-    from run_onsager_graph_tool_pipeline import get_benchmark_10gene_network, simulate_grn_sde_pairs
+    from analysis.run_onsager_graph_tool_pipeline import get_benchmark_10gene_network, simulate_grn_sde_pairs
     print("\n" + "=" * 60)
     print("Testing Invariant State-Velocity Pair Sampling (`simulate_grn_sde_pairs`)")
     print("=" * 60)

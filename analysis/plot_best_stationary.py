@@ -8,7 +8,7 @@ _proj_dir = os.path.dirname(os.path.abspath(__file__))
 if _proj_dir not in sys.path:
     sys.path.insert(0, _proj_dir)
 
-from exp_information_content import generate_network, simulate_trajectory
+from analysis.exp_information_content import generate_network, simulate_trajectory
 
 out_dir = "/home/francesco/.gemini/antigravity/brain/bfdc093e-0921-4ff2-a18c-45b223faec92"
 

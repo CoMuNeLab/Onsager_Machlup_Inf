@@ -32,7 +32,7 @@ if _proj_dir not in sys.path:
 
 import graph_tool.all as gt
 from gene_expr import GeneExprBlockState
-from run_onsager_graph_tool_pipeline import simulate_grn_sde_trajectory
+from analysis.run_onsager_graph_tool_pipeline import simulate_grn_sde_trajectory
 
 
 def generate_synthetic_grn(N, avg_degree=1.8, density=None, seed=42):

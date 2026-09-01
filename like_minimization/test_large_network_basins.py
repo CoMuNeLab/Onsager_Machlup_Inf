@@ -12,8 +12,8 @@ _proj_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _proj_dir not in sys.path:
     sys.path.insert(0, _proj_dir)
 
-from run_onsager_graph_tool_pipeline import simulate_grn_sde_pairs, sigmoid
-from exp_data_trajectories import get_N_M_and_arrays
+from analysis.run_onsager_graph_tool_pipeline import simulate_grn_sde_pairs, sigmoid
+from analysis.exp_data_trajectories import get_N_M_and_arrays
 
 def generate_random_network(N=100, density=0.05, seed=42):
     np.random.seed(seed)
