@@ -59,10 +59,10 @@ def main():
         # We start with greedy (high beta) for faster convergence in this test
         t0 = time.time()
         beta = min(10.0, sweep * 0.5) 
-        dS, n_moves, n_theta_moves = mcmc_sweep(state, beta=beta, niter=1)
+        n_moves, n_merge, n_split, n_theta_moves = mcmc_sweep(state, beta=beta)
         S_cur = state.get_entropy()
         t1 = time.time()
-        print(f"Sweep {sweep:2d}/{n_sweeps} | Beta: {beta:4.1f} | Topo Moves: {n_moves:3d} | Theta Moves: {n_theta_moves:3d} | Entropy: {S_cur:10.4f} | Time: {t1-t0:.2f}s")
+        print(f"Sweep {sweep:2d}/{n_sweeps} | Beta: {beta:4.1f} | Topo Moves: {n_moves:3d} (M:{n_merge}, S:{n_split}) | Theta Moves: {n_theta_moves:3d} | Entropy: {S_cur:10.4f} | Time: {t1-t0:.2f}s")
         
     print("\nExtracting Graph...")
     print(f"Final Categories K: {state.K}")

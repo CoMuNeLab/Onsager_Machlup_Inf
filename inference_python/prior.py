@@ -72,3 +72,58 @@ def compute_mdl_prior(N, E, K, m_counts, z_values, lambda_val=1.0, delta=1e-8):
     
     total_penalty = term1 + term2 + term3 + term4 + term5 + term6 + term7 + term8 + term9
     return total_penalty
+
+def compute_mdl_theta_prior(N, K, n_counts, u_values, lambda_val=1.0, delta=1e-8):
+    """
+    Computes the Minimum Description Length (MDL) prior penalty for node parameters: 
+    -log P(theta | lambda, Delta). (Eq 34 from the paper)
+    
+    Parameters:
+    - N: Number of nodes
+    - K: Number of categories for this specific parameter
+    - n_counts: Array or list of node counts per category (length K)
+    - u_values: Array or list of category values (length K)
+    - lambda_val: Scale parameter for Laplace prior
+    - delta: Precision parameter for Laplace prior
+    
+    Returns:
+    - prior_penalty: -log P(theta)
+    """
+    if N == 0:
+        return 0.0
+    
+    if K == 0 or K > N:
+        return np.inf
+        
+    # -log(prod n_k!)
+    term1 = -np.sum([scipy.special.gammaln(n + 1) for n in n_counts])
+    
+    # lambda * sum |u_k|
+    term2 = lambda_val * np.sum(np.abs(u_values))
+    
+    # Indicator if 0 is exactly one of the categories
+    has_zero = any(abs(u) < 1e-12 for u in u_values)
+    I_0 = 1 if has_zero else 0
+    
+    # - (K - I_0) * log(sinh(lambda * delta)) - I_0 * log(1 - e^(-lambda * delta))
+    ld = lambda_val * delta
+    if ld < 1e-4:
+        log_sinh = np.log(ld) # sinh(x) approx x
+        log_one_minus_exp = np.log(ld) # 1 - e^-x approx x
+    else:
+        log_sinh = np.log(np.sinh(ld))
+        log_one_minus_exp = np.log(1.0 - np.exp(-ld))
+        
+    term3 = -(K - I_0) * log_sinh - I_0 * log_one_minus_exp
+    
+    # log(N!)
+    term4 = scipy.special.gammaln(N + 1)
+    
+    # log binom(N-1, K-1)
+    term5 = log_binom(N - 1, K - 1)
+    
+    # log(N)
+    term6 = np.log(N)
+    
+    total_penalty = term1 + term2 + term3 + term4 + term5 + term6
+    return total_penalty
