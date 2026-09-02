@@ -3,9 +3,15 @@ using Plots
 using Statistics
 using LinearAlgebra
 
-# N and N_samples (Hardcoded for now based on inference script)
-N = 50
-N_samples = 100
+# Compute N dynamically based on true network binary size
+true_file_size = filesize("results/W_true.bin")
+N = Int(sqrt(true_file_size / sizeof(Float64)))
+println("Detected N = ", N, " from W_true.bin.")
+
+# Compute N_samples dynamically based on binary file size
+file_size = filesize("results/W_ensemble.bin")
+N_samples = div(file_size, N * N * sizeof(Float64))
+println("Detected N_samples = ", N_samples, " from W_ensemble.bin.")
 
 # Load the ensemble results from raw binary (C-order)
 println("Loading ensemble results from binary...")
@@ -13,19 +19,20 @@ println("Loading ensemble results from binary...")
 # Python saved as (N_samples, N, N). 
 # Julia reads in Fortran order. First dimension in Julia varies fastest.
 # Python's fastest varying dimension is the last one (size N).
-raw_W = read!("W_ensemble.bin", Array{Float64}(undef, N, N, N_samples))
+raw_W = read!("results/W_ensemble.bin", Array{Float64}(undef, N, N, N_samples))
 
 # Python saved as (N_samples, 3).
-raw_theta = read!("theta_ensemble.bin", Array{Float64}(undef, 3, N_samples))
+raw_theta = read!("results/theta_ensemble.bin", Array{Float64}(undef, 3, N_samples))
 
 println("Loading TRUE network...")
-W_true = permutedims(read!("W_true.bin", Array{Float64}(undef, N, N)), (2, 1))
-theta_true = read!("theta_true.bin", Array{Float64}(undef, 3))
+W_true = permutedims(read!("results/W_true.bin", Array{Float64}(undef, N, N)), (2, 1))
+theta_true = read!("results/theta_true.bin", Array{Float64}(undef, 3))
 
 println("W_ensemble binary read complete.")
 
-# Perturbation target: Knockout Master Regulator (Node 1 in Julia, Node 0 in Python)
-ko_idx = 1
+# Perturbation target: Knockout Master Regulator
+# Read from command line arguments if provided, else default to 1 (Node 0 in Python)
+ko_idx = length(ARGS) > 0 ? parse(Int, ARGS[1]) : 1
 
 # Base setup for stationary state
 tspan = (0.0, 10.0) # Integrate longer to ensure steady state
@@ -160,6 +167,5 @@ plot!(p, [min_val, max_val], [min_val, max_val], color=:red, linestyle=:dash, la
 plot!(p, [min_val, max_val], [0, 0], color=:gray, linestyle=:dot, label="")
 plot!(p, [0, 0], [min_val, max_val], color=:gray, linestyle=:dot, label="")
 
-savefig("delta_stationary_states_plot.png")
-println("Saved delta_stationary_states_plot.png successfully!")
-
+savefig("images/delta_stationary_states_plot.png")
+println("Saved images/delta_stationary_states_plot.png successfully!")
