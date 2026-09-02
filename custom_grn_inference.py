@@ -64,39 +64,54 @@ def generate_scale_free_W(N, m=2, seed=42):
 # In[58]:
 
 
-def simulate_realistic_trajectories(W, T_total, dt, dt_meas, D_base, mean_d, std_d, mean_V, std_V, seed=123):
+def simulate_realistic_pairs(W, M=200, dt_sim=0.01, dt_sample=0.5, dt_meas=0.05, D_base=0.1, mean_d=0.5, std_d=0.5, mean_V=2.0, std_V=0.5, seed=123, t_window=(0.0, 3.0)):
     N = W.shape[0]
     np.random.seed(seed)
     
-    # Heterogeneous parameters (Log-Normal)
+    # Heterogeneous parameters
     d = np.random.lognormal(mean=np.log(mean_d), sigma=std_d, size=N)
     V = np.random.lognormal(mean=np.log(mean_V), sigma=std_V, size=N)
     
-    n_steps = int(T_total / dt)
-    x = np.random.uniform(0.1, 1.0, size=N)
-    x_history = []
-    t_history = []
+    t_start, t_end = t_window
+    sample_times = np.arange(t_start, t_end + 1e-9, dt_sample)
+    if len(sample_times) == 0:
+        sample_times = np.array([t_start])
+    K = len(sample_times)
     
+    n_trajectories = int(np.ceil(M / K))
+    
+    T_max = t_end + dt_meas
+    n_steps = int(np.round(T_max / dt_sim))
+    
+    sample_step_indices = [int(np.round(t / dt_sim)) for t in sample_times]
+    next_step_indices = [int(np.round((t + dt_meas) / dt_sim)) for t in sample_times]
+    
+    all_pairs = []
+    
+    for traj_idx in range(n_trajectories):
+        x = np.random.uniform(0.1, 1.0, size=N).astype(np.float64)
+        history = {0: x.copy()}
+        
+        for step in range(1, n_steps + 1):
+            drift = -d * x + V * sigmoid(np.dot(W, x))
+            noise = np.sqrt(D_base * np.maximum(x, 0.01)) * np.random.normal(0, np.sqrt(dt_sim), size=N)
+            x = np.maximum(x + dt_sim * drift + noise, 0.01)
+            
+            if step in sample_step_indices or step in next_step_indices:
+                history[step] = x.copy()
+                
+        for s_idx, n_idx in zip(sample_step_indices, next_step_indices):
+            pair = np.column_stack([history[s_idx], history[n_idx]])
+            all_pairs.append(pair)
+            if len(all_pairs) == M:
+                break
+        if len(all_pairs) == M:
+            break
+            
     out_degrees = (W != 0).sum(axis=0)
     hub_node = np.argmax(out_degrees)
-    
-    meas_step = max(1, int(dt_meas / dt))
-    
-    for step in range(n_steps):
-        t = step * dt
-        drift = -d * x + V * sigmoid(np.dot(W, x))
-        
-        # Multiplicative CIR noise matching the C++ extension
-        noise = np.sqrt(D_base * np.maximum(x, 0.01)) * np.random.normal(0, np.sqrt(dt), size=N)
-        
-        x = x + drift * dt + noise
-        x = np.maximum(x, 0.01)
-        
-        if step % meas_step == 0:
-            x_history.append(x.copy())
-            t_history.append(t)
             
-    return np.array(t_history), np.array(x_history), hub_node, out_degrees, d, V
+    return all_pairs, hub_node, out_degrees, d, V
 
 
 # ### Custom Parameters & Trajectory Simulation
@@ -111,9 +126,11 @@ m = 2               # Edges to attach from a new node to existing nodes
 seed_network = 42   # Random seed for network generation
 
 # Simulation Parameters
-T_total = 30.0     # Total simulation time
-dt = 0.01           # Simulation time step
-dt_meas = 0.05       # Measurement interval
+M_pairs = 200      # Number of observation pairs to harvest
+dt_sim = 0.01      # Simulation integration step
+dt_meas = 0.05     # Measurement interval for the pair
+dt_sample = 0.5    # Interval between harvested pairs in the same trajectory
+t_window = (0.0, 3.0) # ONLY TRANSIENT REGION
 D_base = 0.1        # Base multiplicative noise level
 
 # Kinetic Parameters (Mean and Std of Log-Normal distribution)
@@ -127,28 +144,22 @@ seed_sim = 123      # Random seed for simulation
 W_true = generate_scale_free_W(N, m, seed=seed_network)
 
 # Simulate Trajectories
-t, X, hub_node, out_degrees, d_true, V_true = simulate_realistic_trajectories(
-    W_true, T_total, dt, dt_meas, D_base, 
-    mean_decay, std_decay, mean_V, std_V, seed=seed_sim
+pairs, hub_node, out_degrees, d_true, V_true = simulate_realistic_pairs(
+    W_true, M=M_pairs, dt_sim=dt_sim, dt_sample=dt_sample, dt_meas=dt_meas, 
+    D_base=D_base, mean_d=mean_decay, std_d=std_decay, mean_V=mean_V, std_V=std_V, 
+    seed=seed_sim, t_window=t_window
 )
 
-# Format for graph-tool inference (shape: N x M)
-s = X.T
+# Format for graph-tool inference (list of N x 2 arrays)
+s = pairs
 print(f"Master Regulator is Node {hub_node} with {out_degrees[hub_node]} outgoing edges.")
-print(f"Trajectory shape (N x M): {s.shape}")
+print(f"Harvested {len(s)} state-transition pairs from transient windows {t_window}.")
 
 
 # In[72]:
 
 
-plt.figure(figsize=(12, 6))
-for i in range(X.shape[1]):
-    plt.plot(t, X[:, i], lw=1.5, alpha=0.8)
-plt.title("Simulated Gene Expression Trajectories")
-plt.xlabel("Time")
-plt.ylabel("Expression Level")
-plt.grid(True, alpha=0.3)
-# plt.show()
+# Plotting disabled because we are no longer generating continuous trajectories, but discrete pairs.
 
 
 # ### Graph-Tool Bayesian Inference
@@ -283,5 +294,5 @@ axes[1].set_ylabel("Target Gene")
 plt.colorbar(im2, ax=axes[1], fraction=0.046, pad=0.04)
 
 plt.tight_layout()
-# plt.show()
+plt.show()
 
