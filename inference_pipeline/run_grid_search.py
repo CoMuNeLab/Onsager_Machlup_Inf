@@ -3,12 +3,7 @@ import sys
 import csv
 import itertools
 import numpy as np
-from concurrent.futures import ProcessPoolExecutor, as_completed
 import time
-import multiprocessing
-
-# Restrict graph-tool OpenMP threads to avoid oversubscription
-os.environ["OMP_NUM_THREADS"] = "1"
 
 import graph_tool.all as gt
 
@@ -34,6 +29,11 @@ def run_single_config(dt_meas, M_pairs, t_window, N):
         config_name = f"N_{N}_M_{M_pairs}_dt_{dt_meas}_twnd_{t_window[0]}_{t_window[1]}"
         output_dir = os.path.join("grid_results", config_name)
         os.makedirs(output_dir, exist_ok=True)
+        npz_path = os.path.join(output_dir, "results.npz")
+        
+        # Checkpoint: skip if already processed
+        if os.path.exists(npz_path):
+            return "skipped", None
         
         # 1. Generate Data
         W_true = generate_scale_free_W(N, m, seed=seed_network)
@@ -48,18 +48,25 @@ def run_single_config(dt_meas, M_pairs, t_window, N):
         # 2. Bayesian Inference
         g_init = gt.Graph(directed=True)
         g_init.add_vertex(N)
+        
+        # Add ~5% density of random edges to jump-start the MCMC and avoid the empty graph trap
+        num_initial_edges = max(1, int(N * N * 0.05))
+        possible_edges = [(u, v) for u in range(N) for v in range(N) if u != v]
+        np.random.shuffle(possible_edges)
+        for u, v in possible_edges[:num_initial_edges]:
+            g_init.add_edge(u, v)
+            
         initial_theta = [0.0, 0.0, np.log(0.05)]
         
         state = GeneExprBlockState(s, dt=dt_meas, g=g_init, state_args=dict(deg_corr=True), theta=initial_theta)
         
-        # 50 burn in, 100 sampling (from user request)
+        # 50 burn in, 100 sampling
         state = run_burn_in(state, n_burnin=50, optimize_params=True)
         W_ensemble, theta_ensemble = run_posterior_sampling(state, N, n_samples=100, delta_k=1, optimize_params=True)
         
         edge_probabilities, weight_mean, weight_std = compute_ensemble_stats(W_ensemble)
         
         # 3. Save NPZ
-        npz_path = os.path.join(output_dir, "results.npz")
         np.savez_compressed(
             npz_path, 
             W_ensemble=W_ensemble, 
@@ -83,10 +90,12 @@ def run_single_config(dt_meas, M_pairs, t_window, N):
             "status": "success",
             "error": ""
         }
-        return row
+        return "success", row
         
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
-        return {
+        return "failed", {
             "dt_meas": dt_meas,
             "M_pairs": M_pairs,
             "t_window_start": t_window[0],
@@ -103,7 +112,6 @@ if __name__ == "__main__":
     grid_t_window = [(0.0, 3.0), (10.0, 15.0)]
     grid_N = [10, 20, 50, 100, 200]
     
-    # Check if we are doing a dry run
     if len(sys.argv) > 1 and sys.argv[1] == "--dry-run":
         print("Running DRY RUN (subset of grid)")
         grid_dt_meas = [0.05]
@@ -112,7 +120,8 @@ if __name__ == "__main__":
         grid_N = [10, 20]
         
     all_configs = list(itertools.product(grid_dt_meas, grid_M_pairs, grid_t_window, grid_N))
-    print(f"Total configurations to run: {len(all_configs)}")
+    total_configs = len(all_configs)
+    print(f"Total configurations to run: {total_configs}")
     
     os.makedirs("grid_results", exist_ok=True)
     csv_file = os.path.join("grid_results", "performance_metrics.csv")
@@ -123,42 +132,36 @@ if __name__ == "__main__":
         "status", "error"
     ]
     
-    # Initialize CSV with header
-    with open(csv_file, mode="w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-    
-    # We leave 1 core free for responsiveness
-    max_workers = max(1, multiprocessing.cpu_count() - 1)
+    # Initialize CSV with header if it doesn't exist
+    if not os.path.exists(csv_file):
+        with open(csv_file, mode="w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
     
     start_time = time.time()
     
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all tasks
-        futures = {executor.submit(run_single_config, *config): config for config in all_configs}
-        
-        # Process them as they complete
-        completed_count = 0
-        for future in as_completed(futures):
-            completed_count += 1
-            config = futures[future]
-            try:
-                result_row = future.result()
-                # Append to CSV sequentially to avoid race conditions
-                with open(csv_file, mode="a", newline="") as f:
-                    writer = csv.DictWriter(f, fieldnames=fieldnames)
-                    
-                    # Fill missing metric keys if failed
-                    for key in fieldnames:
-                        if key not in result_row:
-                            result_row[key] = None
-                            
-                    writer.writerow(result_row)
-                
-                print(f"[{completed_count}/{len(all_configs)}] Config {config} completed. Status: {result_row['status']}")
-            except Exception as e:
-                print(f"[{completed_count}/{len(all_configs)}] Config {config} raised an exception: {e}")
+    try:
+        for idx, config in enumerate(all_configs):
+            dt_meas, M_pairs, t_window, N = config
+            pct = (idx / total_configs) * 100
+            print(f"\n[{idx+1}/{total_configs}] ({pct:.1f}%) Processing N={N}, M={M_pairs}, dt={dt_meas}, twnd={t_window} ...")
+            
+            status, result_row = run_single_config(*config)
+            
+            if status == "skipped":
+                print(f"  -> SKIPPED (Already computed)")
+            else:
+                print(f"  -> {status.upper()}")
+                if result_row:
+                    with open(csv_file, mode="a", newline="") as f:
+                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        for key in fieldnames:
+                            if key not in result_row:
+                                result_row[key] = None
+                        writer.writerow(result_row)
+    except KeyboardInterrupt:
+        print("\n\nGrid search INTERRUPTED by user (Ctrl+C). Progress saved safely.")
+        sys.exit(0)
 
     total_time = time.time() - start_time
-    print(f"Grid search finished in {total_time:.2f} seconds.")
-
+    print(f"\nGrid search finished in {total_time:.2f} seconds.")
