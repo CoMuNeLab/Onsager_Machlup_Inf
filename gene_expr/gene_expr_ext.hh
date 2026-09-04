@@ -45,11 +45,21 @@ public:
 
         double sig_m = 1.0 / (1.0 + exp(-m));
         double dt = std::max(1e-6, _dt);
-        double mu = x + dt * (-gamma * x + V * sig_m);
+        // UPGRADE: Analytical CIR integration
+        double mu_inf = (V * sig_m) / gamma;
         
-        // UPGRADE: Multiplicative CIR noise
-        double s = sqrt(D * x_safe * dt);
-        double log_s = 0.5 * (lD + log(x_safe) + log(dt));
+        // Exact Mean (Analytical Solution)
+        double exp_g = exp(-gamma * dt);
+        double mu = mu_inf + (x_safe - mu_inf) * exp_g;
+        
+        // Exact Variance (Ito Isometry Solution)
+        double exp_2g = exp(-2.0 * gamma * dt);
+        double exact_var = (D / gamma) * (x_safe - mu_inf) * (exp_g - exp_2g) 
+                         + (D * mu_inf) / (2.0 * gamma) * (1.0 - exp_2g);
+        
+        // Standard deviation for the Gaussian likelihood
+        double s = sqrt(std::max(1e-10, exact_var)); 
+        double log_s = log(s);
 
         double res = norm_lpdf(nx, mu, s, log_s);
         if (!std::isfinite(res) || std::abs(res) > 1e10)

@@ -4,6 +4,7 @@ import csv
 import itertools
 import numpy as np
 import time
+import argparse
 
 import graph_tool.all as gt
 
@@ -13,20 +14,21 @@ from inference_pipeline.inference.mcmc_engine import run_burn_in, run_posterior_
 from inference_pipeline.inference.metrics import compute_reconstruction_metrics
 from gene_expr import GeneExprBlockState
 
-def run_single_config(dt_meas, M_pairs, t_window, N):
+def run_single_config(dt_meas, M_pairs, t_window, N, trial_id):
     try:
         # Fixed hyperparameters
         m = 1
-        seed_network = 42
+        # The topology seed depends on the trial so we get a statistical ensemble
+        seed_network = 42 + trial_id
         dt_sim = 0.01
-        dt_sample = 0.5
+        dt_sample = 0.9
         mean_d = 0.5
         mean_V = 2.0
         D_base = 0.02
         
         # Output directory
-        config_name = f"N_{N}_M_{M_pairs}_dt_{dt_meas}_twnd_{t_window[0]}_{t_window[1]}"
-        output_dir = os.path.join("grid_results", config_name)
+        config_name = f"N_{N}_M_{M_pairs}_dt_{dt_meas}_twnd_{t_window[0]}_{t_window[1]}_trial_{trial_id}"
+        output_dir = os.path.join("results", "grid_results", config_name)
         os.makedirs(output_dir, exist_ok=True)
         npz_path = os.path.join(output_dir, "results.npz")
         
@@ -41,6 +43,8 @@ def run_single_config(dt_meas, M_pairs, t_window, N):
         s, hub_node, out_degrees, d_true, V_true = simulate_realistic_pairs(
             W_true, M=M_pairs, dt_sim=dt_sim, dt_sample=dt_sample, dt_meas=dt_meas, 
             D_base=D_base, mean_d=mean_d, std_d=0.0, mean_V=mean_V, std_V=0.0, 
+            # Fixed simulation seed across trials to isolate topological effects, 
+            # or could vary it. We keep it 123 for consistency.
             seed=123, t_window=t_window
         )
         
@@ -80,6 +84,7 @@ def run_single_config(dt_meas, M_pairs, t_window, N):
         
         # Return summary for CSV
         row = {
+            "trial": trial_id,
             "dt_meas": dt_meas,
             "M_pairs": M_pairs,
             "t_window_start": t_window[0],
@@ -95,6 +100,7 @@ def run_single_config(dt_meas, M_pairs, t_window, N):
         raise
     except Exception as e:
         return "failed", {
+            "trial": trial_id,
             "dt_meas": dt_meas,
             "M_pairs": M_pairs,
             "t_window_start": t_window[0],
@@ -105,28 +111,35 @@ def run_single_config(dt_meas, M_pairs, t_window, N):
         }
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run GRN Inference Grid Search")
+    parser.add_argument("--dry-run", action="store_true", help="Run a small subset for testing")
+    parser.add_argument("--trials", type=int, default=1, help="Number of trials per configuration (varying topology seed)")
+    args = parser.parse_args()
+
     # Define Parameter Grid
-    grid_dt_meas = [0.01, 0.05, 0.1, 0.5]
-    grid_M_pairs = [100, 200, 500, 1000]
+    grid_dt_meas = [0.01, 0.05, 0.1, 0.5, 1.0]
+    grid_M_pairs = [100,200,500,1000,2000]
     grid_t_window = [(0.0, 3.0), (10.0, 15.0)]
     grid_N = [10, 20, 50, 100]
+    grid_trials = list(range(args.trials))
     
-    if len(sys.argv) > 1 and sys.argv[1] == "--dry-run":
+    if args.dry_run:
         print("Running DRY RUN (subset of grid)")
         grid_dt_meas = [0.05]
         grid_M_pairs = [100]
         grid_t_window = [(0.0, 3.0)]
         grid_N = [10, 20]
         
-    all_configs = list(itertools.product(grid_dt_meas, grid_M_pairs, grid_t_window, grid_N))
+    all_configs = list(itertools.product(grid_N, grid_dt_meas, grid_M_pairs, grid_t_window, grid_trials))
     total_configs = len(all_configs)
-    print(f"Total configurations to run: {total_configs}")
+    print(f"Total configurations to run: {total_configs} (including {args.trials} trial(s) per setup)")
     
-    os.makedirs("grid_results", exist_ok=True)
-    csv_file = os.path.join("grid_results", "performance_metrics.csv")
+    os.makedirs("results", exist_ok=True)
+    os.makedirs(os.path.join("results", "grid_results"), exist_ok=True)
+    csv_file = os.path.join("results", "grid_results", "performance_metrics.csv")
     
     fieldnames = [
-        "dt_meas", "M_pairs", "t_window_start", "t_window_end", "N",
+        "trial", "dt_meas", "M_pairs", "t_window_start", "t_window_end", "N",
         "TP", "FP", "FN", "TN", "TPR (Recall)", "FPR", "Precision", "F1-Score", "SHD",
         "status", "error"
     ]
@@ -141,9 +154,9 @@ if __name__ == "__main__":
     
     try:
         for idx, config in enumerate(all_configs):
-            dt_meas, M_pairs, t_window, N = config
+            dt_meas, M_pairs, t_window, N, trial_id = config
             pct = (idx / total_configs) * 100
-            print(f"\n[{idx+1}/{total_configs}] ({pct:.1f}%) Processing N={N}, M={M_pairs}, dt={dt_meas}, twnd={t_window} ...")
+            print(f"\n[{idx+1}/{total_configs}] ({pct:.1f}%) Processing N={N}, M={M_pairs}, dt={dt_meas}, twnd={t_window}, trial={trial_id} ...")
             
             status, result_row = run_single_config(*config)
             
