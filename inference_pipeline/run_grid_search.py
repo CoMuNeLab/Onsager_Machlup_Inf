@@ -108,9 +108,9 @@ def run_single_config(dt_meas, M_pairs, t_window, N):
 if __name__ == "__main__":
     # Define Parameter Grid
     grid_dt_meas = [0.01, 0.05, 0.1, 0.5]
-    grid_M_pairs = [100, 200, 500, 1000, 2000]
+    grid_M_pairs = [100, 200, 500, 1000]
     grid_t_window = [(0.0, 3.0), (10.0, 15.0)]
-    grid_N = [10, 20, 50, 100, 200]
+    grid_N = [10, 20, 50, 100]
     
     if len(sys.argv) > 1 and sys.argv[1] == "--dry-run":
         print("Running DRY RUN (subset of grid)")
