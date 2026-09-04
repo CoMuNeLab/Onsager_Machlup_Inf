@@ -117,7 +117,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Define Parameter Grid
-    grid_dt_meas = [0.01, 0.05, 0.1, 0.5, 1.0]
+    grid_dt_meas = [0.01, 0.03, 0.05, 0.1, 0.5, 1.0]
     grid_M_pairs = [100,200,500,1000,2000]
     grid_t_window = [(0.0, 3.0), (10.0, 15.0)]
     grid_N = [10, 20, 50, 100]
