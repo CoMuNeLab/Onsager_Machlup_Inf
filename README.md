@@ -1,4 +1,4 @@
-![CancerEvo Project Overview](images/Fig_Github.png)
+![CancerEvo Project Overview](papers_figures/Fig_Github.png)
 
 # InferenceBio: Gene Regulatory Network Inference
 
