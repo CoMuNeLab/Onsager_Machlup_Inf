@@ -7,7 +7,6 @@ import time
 
 import graph_tool.all as gt
 
-sys.path.append(os.path.abspath('..'))
 from inference_pipeline.data_generation.network_generator import generate_scale_free_W
 from inference_pipeline.data_generation.simulator import simulate_realistic_pairs
 from inference_pipeline.inference.mcmc_engine import run_burn_in, run_posterior_sampling, compute_ensemble_stats

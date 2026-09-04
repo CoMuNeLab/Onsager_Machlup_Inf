@@ -31,7 +31,7 @@ for d in data:
     })
 df = pd.DataFrame(flat_data)
 
-fig_dir = os.path.join(_proj_dir, 'figures')
+fig_dir = os.path.join(_proj_dir, 'images')
 os.makedirs(fig_dir, exist_ok=True)
 
 # 1. AUROC by N and Topology
@@ -75,4 +75,4 @@ plt.title('AUROC for N=10: Topology vs (Scale, FL_Level)')
 plt.savefig(os.path.join(fig_dir, 'heatmap_n10.png'), bbox_inches='tight')
 plt.close()
 
-print("Plots generated successfully in figures/")
+print("Plots generated successfully in images/")

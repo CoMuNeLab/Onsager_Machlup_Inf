@@ -26,7 +26,7 @@ plt.rcParams.update({
 })
 
 _proj_dir = os.path.dirname(os.path.abspath(__file__))
-fig_dir = os.path.join(_proj_dir, "figures")
+fig_dir = os.path.join(_proj_dir, "images")
 os.makedirs(fig_dir, exist_ok=True)
 
 def load_data():

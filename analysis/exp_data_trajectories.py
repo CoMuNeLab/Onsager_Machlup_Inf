@@ -545,7 +545,7 @@ def main():
     print("=" * 80, flush=True)
 
     out_json = os.path.join(_proj_dir, "results_data_trajectories.json")
-    out_dir = os.path.join(_proj_dir, "figures")
+    out_dir = os.path.join(_proj_dir, "images")
 
     if "--plot-only" in sys.argv and os.path.exists(out_json):
         print(f"Loading existing experimental results from: {out_json}", flush=True)

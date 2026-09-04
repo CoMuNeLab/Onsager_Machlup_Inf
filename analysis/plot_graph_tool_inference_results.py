@@ -50,7 +50,7 @@ plt.rcParams.update({
     "figure.dpi": 300,
 })
 
-def create_output_dir(dir_path="figures"):
+def create_output_dir(dir_path="images"):
     out_dir = os.path.join(_proj_dir, dir_path)
     os.makedirs(out_dir, exist_ok=True)
     return out_dir
@@ -244,7 +244,7 @@ def main():
     print("GENERATING INFERENCE VISUALIZATIONS FOR GRAPH-TOOL GRN EXTENSION")
     print("=" * 72)
     
-    out_dir = create_output_dir("figures")
+    out_dir = create_output_dir("images")
     print(f"Output directory: {out_dir}\n")
     
     W_true = get_benchmark_10gene_network()

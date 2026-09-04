@@ -9,7 +9,7 @@ Analyzes:
   5. Complete multivariate correlation matrix & pairplot.
   6. OLS regression & ANOVA variance decomposition explaining AUROC in terms of physical invariants.
 
-Generates 6 high-resolution publication PNG figures in `figures/` and writes a statistical
+Generates 6 high-resolution publication PNG figures in `images/` and writes a statistical
 summary report to `report_batch_trajectory_analysis.md`.
 """
 
@@ -40,7 +40,7 @@ plt.rcParams.update({
 })
 
 _proj_dir = os.path.dirname(os.path.abspath(__file__))
-fig_dir = os.path.join(_proj_dir, "figures")
+fig_dir = os.path.join(_proj_dir, "images")
 os.makedirs(fig_dir, exist_ok=True)
 
 def load_data():
