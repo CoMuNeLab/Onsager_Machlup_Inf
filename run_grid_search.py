@@ -63,8 +63,8 @@ def run_single_config(dt_meas, M_pairs, t_window, N, trial_id):
         
         state = GeneExprBlockState(s, dt=dt_meas, g=g_init, state_args=dict(deg_corr=True), theta=initial_theta)
         
-        # 50 burn in, 100 sampling
-        state = run_burn_in(state, n_burnin=50, optimize_params=True)
+        # 100 burn in, 100 sampling
+        state = run_burn_in(state, n_burnin=100, optimize_params=True)
         W_ensemble, theta_ensemble = run_posterior_sampling(state, N, n_samples=100, delta_k=1, optimize_params=True)
         
         edge_probabilities, weight_mean, weight_std = compute_ensemble_stats(W_ensemble)
@@ -118,7 +118,7 @@ if __name__ == "__main__":
 
     # Define Parameter Grid
     grid_dt_meas = [0.01, 0.03, 0.05, 0.1, 0.5, 1.0]
-    grid_M_pairs = [100,200,500,1000,2000]
+    grid_M_pairs = [100,200,500,1000]
     grid_t_window = [(0.0, 3.0), (10.0, 15.0)]
     grid_N = [10, 20, 50, 100]
     grid_trials = list(range(args.trials))
@@ -130,7 +130,7 @@ if __name__ == "__main__":
         grid_t_window = [(0.0, 3.0)]
         grid_N = [10, 20]
         
-    all_configs = list(itertools.product(grid_N, grid_dt_meas, grid_M_pairs, grid_t_window, grid_trials))
+    all_configs = list(itertools.product(grid_dt_meas, grid_M_pairs, grid_t_window, grid_N, grid_trials))
     total_configs = len(all_configs)
     print(f"Total configurations to run: {total_configs} (including {args.trials} trial(s) per setup)")
     

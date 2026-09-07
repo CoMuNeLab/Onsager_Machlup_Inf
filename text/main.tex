@@ -1,0 +1,272 @@
+\documentclass[10pt, aps, rmp,  twocolumn, superscriptaddress, floatfix, showkeys]{revtex4-2}
+\usepackage[shortlabels]{enumitem}
+\bibliographystyle{plainnat}
+%\usepackage[latin1]{inputenc}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{calrsfs} 
+\usepackage{times}
+\usepackage[sort&compress]{natbib}
+\usepackage{subfigure}
+\usepackage{xcolor}
+\usepackage{calrsfs}
+\usepackage{soul}
+\usepackage{booktabs, multirow}
+\usepackage{comment}
+\usepackage{verbatim}
+\usepackage{framed}
+\usepackage{lineno}
+\linenumbers
+
+\usepackage{xcolor}
+\usepackage{mdframed}
+
+\newmdenv[
+  backgroundcolor=gray!10,
+  linecolor=gray!10,
+  linewidth=0pt,
+  innerleftmargin=10pt,
+  innerrightmargin=10pt,
+  innertopmargin=10pt,
+  innerbottommargin=10pt,
+  skipabove=10pt,
+  skipbelow=10pt
+]{graybox}
+
+% Preamble code to extract detailed section word counts
+\newcommand{\detailtexcount}[1]{%
+  \immediate\write18{texcount -v -merge -q #1.tex > #1.wcdet}%
+  \verbatiminput{#1.wcdet}%
+}
+
+\providecommand{\keywords}[1]{\textbf{\textit{Keywords---}} #1}
+
+
+\begin{document}
+\newcommand{\fz}[1]{\textcolor{blue}{#1}}
+\newcommand{\tbd}[1]{\textcolor{blue}{[TBD] #1}}
+
+%\title{Alternative genome instability states in a digital model of tumorigenesis with whole genome duplication}
+
+%\title{Evolution of critical cancer instability after whole genome duplication}
+%\title{Evolutionary paths towards critical cancer instability}
+%\title{Self-Organized cancer fragility emerges from chromosomal instability}
+\title{A Probabilistic Ensemble-Based Bayesian Method for Mechanistic GRN Inference}
+%\title{Genomically unstable evolution drives tumours to the edge of viability}
+
+  
+\providecommand{\DFA}{Department of Physics and Astronomy ``Galileo Galilei'', University of Padova, Padova, Italy}
+\providecommand{\PNC}{Padova Neuroscience Center, University of Padua, Via G. Orus 2, 35131 Padova, Italy}
+\providecommand{\PCNM}{Padua Center for Network Medicine, University of Padua, Via F. Marzolo 8, 315126 Padova, Italy}
+\providecommand{\INFN}{Istituto Nazionale di Fisica Nucleare, Sez. Padova, Italy}
+
+\author{Francesco Zambelli}
+\affiliation{\DFA}
+\author{Valeria D'Andrea}
+\affiliation{\DFA}
+\author{Manlio De Domenico}
+\affiliation{\DFA}
+\affiliation{\PNC}
+\affiliation{\PCNM}
+\affiliation{\INFN}
+
+\vspace{0.4 cm}
+\begin{abstract}
+\vspace{0.2 cm}  
+Recovering the interaction structure of a complex stochastic dynamical system from time-series observations is an inherently ill-posed problem: the posterior over network configurations is high-dimensional, multimodal, and shaped by the non-equilibrium nature of the available data. We propose a Bayesian ensemble inference framework grounded in the Onsager-Machlup path probability formalism, which provides a rigorous likelihood for SDE-governed trajectories without requiring stationarity, and is coupled with a node-wise block-coordinate Metropolis-Hastings sampler that exploits the factorization of the path probability to make inference tractable. A evidence-estimation-based model comparison scheme jointly recovers the dynamical parameters alongside the network topology. Applying the framework to gene regulatory network (GRN) inference, we demonstrate on synthetic data that ensemble-based posterior analysis produce more reliable results, in particular when considering perturbation predictions and network topological statistics, than single-point estimation. The framework is general and can be applied to any mechanistic SDE model, offering a powerful tool for uncertainty-aware inference in complex stochastic systems.
+\vspace{0.2 cm}
+\end{abstract}
+
+\keywords{Cancer, Tumor Growth, Genomic Instability, Error Threshold}
+
+\maketitle
+
+%Paragraph 1: The General Problem. Reconstructing the causal topology of non-linear networked systems from sparse time-series data is a universal challenge across disciplines (e.g., Gene Regulatory Networks, epidemiological models, ecological population dynamics). Introduce these systems as being characterized by two things: saturating behaviors (carrying capacity/resource limits) and intrinsic stochasticity.
+
+%Paragraph 2: The Data Limitations. In reality, time-series data from these systems is sparse, noisy, and often measured at large intervals.
+
+%Paragraph 3: Current Approaches vs. SDEs. Explain why traditional methods fail: Correlation methods (like WGCNA/Time-Delayed Pearson) only capture symmetric linear relationships and cannot distinguish direct causality from indirect cascades. Deterministic ODEs overfit because they assume all variance is structural; when fit to noisy sparse data, the optimizer hallucinates edges to explain random fluctuations. Introduce Stochastic Differential Equations (SDEs) as the rigorous solution because they explicitly separate deterministic structural dynamics (the network) from intrinsic stochastic noise.
+
+%Paragraph 4: Paper Roadmap. Outline the transition from MAP estimates to Bayesian ensembles, and the mathematical innovations required to make it computationally feasible.
+
+
+\section{Introduction}
+
+\section{Bayesian Network Inference}
+
+%Paragraph 1: The Inverse Problem. Formulate network reconstruction as an inverse problem. Introduce Bayes' Theorem.
+
+
+
+
+When trying to approach the inverse problem of network reconstruction from some data $\mathbf{X}$, the most rigorous and transparent approach is using Bayesian inference:
+
+\begin{equation}
+    P(\mathbf{W},\theta|\mathbf{X}) = \frac{P(\mathbf{X}|\mathbf{W}, \theta)P(\mathbf{W}, \theta)}{P(\mathbf{X})}
+\end{equation}
+
+
+%Paragraph 2: Components of Bayes. Explain the Likelihood (how well the network explains the trajectory) and the Prior (our biological assumptions, e.g., sparsity).
+Using this equation, we suppose that the data we have are generated by a specific generative model, described by the likelihood function $P(\mathbf{X}|\mathbf{W}, \theta)$, where $\mathbf{W}$ is the encodes the network structure and weights and $\theta$ are the extra parameters of the generative model. 
+In this work we will focus on data organized in time series, so, if we have a network of $N$ nodes, and the data are organized in $M$ time points, we can write the data as a matrix $\mathbf{X} = \{\mathbf{x}_{t_1}, \mathbf{x}_{t_2}, ..., \mathbf{x}_{t_M}\}$ of size $M \times N$, where $\mathbf{x}_m$ is a vector of size $N$ that encodes the state of the nodes at time $t_m$. In this case, the likelihood function can be factorized as:
+
+\begin{equation}
+    P(\mathbf{X}|\mathbf{W}, \theta) = \prod_{m=1}^{M-1} P(\mathbf{x}_{t_m+\Delta t}|\mathbf{x}_{t_m}, \mathbf{W}, \theta)
+    \label{eq:general_likelihood}
+\end{equation}
+
+In most of the realistic scenarios, the data we have are scarce and noisy, and the generative models are complex and high-dimensional. For this reasons, when we try to perform inference on the generative model, we can encounter two main problems: non-identifiability and overfitting. Non-identifiability occurs when multiple distinct configurations of the interactions can produce trajectories that are statistically indistinguishable from the data. Overfitting occurs when the model is too complex and fits the noise in the data rather than the underlying signal. 
+
+To overcome these issues we need to incorporate an extra term which acts as a regularizer, penalizing complex models and incorporating prior knowledge about the system. This term is the prior distribution $P(\mathbf{W}, \theta)$, that enables the inference process to be guided towards more plausible configurations, and to avoid overfitting.
+
+
+%Paragraph 3: MDL and Compression. Frame Bayesian optimization conceptually: finding the network that maximizes Minimum Description Length (MDL) compression of the data.
+
+One way to interpret the Bayesian inference framework is through the lens of Minimum Description Length (MDL) principle. Taking the logarithm of Bayes' theorem, we can rewrite it as:
+
+\begin{equation}
+    \log P(\mathbf{W},\theta|\mathbf{X}) = \log P(\mathbf{X}|\mathbf{W}, \theta) + \log P(\mathbf{W}, \theta) - \log P(\mathbf{X})
+\end{equation}
+
+In this way the inference problem can be seen as a maximum compression problem, where we want to find the network configuration that requires the least amount of information to describe the data. This is a crucial aspect of Bayesian inference, as it clearly states the goal of the inference process: to find the network configuration that best explains the data while being as simple as possible.
+
+%Paragraph 4: The Paradigm Shift. Contrast finding the single "best" network (MAP estimate) with generating a probabilistic ensemble. Why ensembles are necessary when single false-positive edges can ruin biological interpretations.
+
+Once we have defined both the generative model and the prior distribution, we can find the configuration that is able to best compress the data, which is called the Maximum A Posteriori (MAP) estimate. However, in many cases, the MAP estimate is not sufficient to capture the full complexity of the inference problem. In particular, the best network configuration often does not correspond exactly to the true underlying network, due to data scarcity, noise and other aspects that cannot be completely comptured by the generative model. 
+
+This aspect is particularly important in context where the mis-specification of a single edge can have a relevant impact on the subsequent system's analysis. This is particulary relevant in the context of gene regulatory networks, where in most of the case, the inferred network is used to perform perturbation analysis, and the mis-specification of a single edge can lead to completely wrong predictions. 
+
+For this reason, it is crucial to consider the full posterior distribution over network configurations, rather than just the MAP estimate. This allows us to capture the uncertainty in the inference process and to generate a probabilistic ensemble of plausible network configurations, which can be used to perform more robust and reliable analyses. This can be acheived by sampling from the posterior distribution using Markov Chain Monte Carlo (MCMC) methods, which allow us to generate a representative set of network configurations that are consistent with the generative model and the model's constraints.
+
+
+\subsection{Capturing Saturation and Relaxation in Networked Systems}
+
+
+%Paragraph 1: The SDE Model. Present the specific SDE: continuous exponential decay, saturating non-linear activation (sigmoid), and the interaction matrix W. Crucially, explain why we chose this model: It is the "simplest non-trivial model" capable of capturing the universal features of bounded complex networks—namely, intrinsic exponential relaxation (without which states would blow up) and bounded non-linear coupling (because real-world networks exert saturating, not infinite, influence).
+
+As a generative model for the data, we consider a system of stochastic differential equations (SDEs) that describe the dynamics of a network of interacting nodes. This is the most general and flexible framework for modeling complex systems, as it allows us to capture both the deterministic dynamics of the system and the intrinsic stochasticity that characterizes the aquired data. 
+As a representative case study, we focus on the following model:
+
+\begin{equation}
+    dx_i = -\gamma \, x_i + V \sigma \, \Bigg(\sum_{j=1}^{N} W_{ij}\, x_j \Bigg) +  \sqrt{D \, x_i} \, dW_i(t)
+\end{equation}
+
+Altough simple, this model is able to capture the universal features of bounded complex networks, namely, intrinsic exponential relaxation and bounded non-linear coupling. Such features are common to many real-world systems, including brain networks, ecological systems, macroeconomics and many others. A particular example of such systems is represented by gene regulatory networks, where the nodes represent genes and the edges represent regulatory interactions between them. In this context, the exponential decay term represents the natural degradation of gene products, while the saturating non-linear activation term represents the limited capacity of genes to influence each other. The interaction matrix $W$ encodes the strength and directionality of these interactions, and the multiplicative noise term captures the intrinsic stochasticity that characterizes gene expression. For the following, we will use as a interpretative framework the context of gene regulatory networks.
+
+In this kind of systems, the correct inference of the interaction matrix $W$ is crucial for understanding the underlying regulatory mechanisms and for making predictions about the system's behavior under different conditions, and for this reason, the Bayesian inference framework is particularly well-suited for this task, as it allows to produce a probabilistic ensemble of plausible network configurations that can be used to perform more robust and reliable analyses.
+
+
+%Paragraph 2: Multiplicative Noise. Argue the choice of Cox-Ingersoll-Ross (CIR) multiplicative noise over additive noise, tying it to realistic biological burstiness.
+
+A particular aspect of the model that we consider is the choice of the multiplicative noise term, which is modeled as a Cox-Ingersoll-Ross (CIR) process. This choice is motivated by the fact that gene expression is known to be a bursty process, where the production of gene products occurs in short bursts rather than at a constant rate. This burstiness can be captured by the multiplicative noise term, which allows for fluctuations in the gene expression levels that are proportional to the current state of the system. In contrast, additive noise would not capture this feature, as it would introduce fluctuations that are independent of the current state of the system.
+
+
+%Paragraph 3: Limitations of Saturation. Discuss the difficulty of inferring saturating dynamics from sparse time-series (if a gene is saturated, changes in input are invisible).
+
+
+
+
+%Paragraph 4: Ground Truth Generation. Explain the choice of a scale-free topology for generating the synthetic validation data and parameter selection.
+
+\subsection{Beyond Euler-Maruyama: Exact Transition Moments for Large Measurement Intervals}
+
+%Paragraph 1: The Likelihood Bottleneck. Explain that Bayesian inference requires evaluating the probability of discrete trajectory points. Introduce the standard Euler-Maruyama (E-M) discretization.
+
+To compute the total likelihood of a trajectory (Eq.~\ref{eq:general_likelihood}), the stohastic process is treated as a Markov chain, requiring the evaluation of the transition probability $P(\mathbf{x}_{t_m+\Delta t}|\mathbf{x}_{t_m}, \mathbf{W}, \theta)$ for every step.
+
+
+Traditionally, this transition probability is approximated using the Euler-Maruyama numerical scheme. This approach assumes that the entire drift derivative remains constant over the measurement interval $\Delta t$, yielding a Gaussian transition density:
+
+\begin{equation}
+    P(x_{t+\Delta t} \mid \mathbf{X}_t) \sim \mathbf{N}\left( x_t + \Delta t \big(-\gamma x_t + V\sigma(m_t)\big), \; D x_t \Delta t \right)
+\end{equation}
+
+where $m_t = \sum_{j=1}^{N} W_{ij}\, x_j(t)$ is the aggregate regulatory input to node $i$ at time $t$.
+
+
+%Paragraph 2: The Discretization Penalty. Detail why E-M fails for biological data: large sampling intervals cause massive tangent overshoots, forcing the optimizer to break the network topology to compensate.
+
+While computationally trivial, this approximation introduces catastrophic structural bias when applied to sparse biological datasets. Real-world transcriptomic time-series often exhibit large measurement intervals (e.g., hours between sampling). Under large $\Delta t$, the Euler-Maruyama linear tangent completely ignores the exponential relaxation inherent to the $-\gamma x_t$ degradation term. This results in severe mathematical overshoot, where the predicted mean may drop below zero or artificially inflate.
+
+%Paragraph 3: The Exact Transition Solution. Introduce the Zero-Order Hold assumption on the regulatory input. Show how this isolates a linear SDE that can be solved exactly.
+
+To mitigate the discretization error without incurring the computationally intractable cost of inferring unobserved latent variables between measurement points, we introduce an exact analytical integration approach predicated on a zero-order hold assumption.
+
+We assume that the aggregate regulatory input from the rest of the network, $m_i(t)$, remains piecewise constant over the short interval $[t, t+\Delta t]$. Under this assumption, the non-linear coupling term $V \, \sigma(m_i(t))$ simplifies to a constant scalar $b$.
+
+The governing SDE for a single gene isolated during this time step reduces to a strictly linear stochastic differential equation:
+
+\[ dx_t = (-\gamma x_t + b) dt + \sqrt{D x_t} dW_t \]
+
+By isolating the gene's state variable $x_t$, the SDE is mathematically equivalent to a continuous CIR process, which permits an exact analytical solution for its transition moments regardless of the magnitude of $\Delta t$.
+
+%Paragraph 4: Theoretical Bounds. Briefly report the exact mean (exponential relaxation) and exact variance (via Itô's Isometry), proving it eliminates the discretization boundary constraints.
+
+Here is the concise, standalone mathematical block you can drop directly into the main text of your article. It gives the reader the exact formulas they need to implement the likelihood, while leaving the heavy stochastic calculus (Itô's Isometry) for the Supplementary Material.
+
+The exact transition probability density for the state of node $i$ at time $t+\Delta t$ can be approximated by a Gaussian $\mathcal{N}(\mu, \Sigma)$, parameterized by its exact analytical moments. 
+    
+By defining the deterministic steady-state asymptote as $\mu_\infty = \frac{V \, \sigma(m_i(t))}{\gamma}$, the exact expected mean is given by the exponential relaxation:
+
+\[ \mu(t+\Delta t) = \mu_\infty + \big(x_i(t) - \mu_\infty\big)e^{-\gamma_i \Delta t} \]
+
+And the exact integrated variance accumulated over the interval $\Delta t$ is given by:
+
+\begin{equation}
+    \begin{aligned}
+    \Sigma(t+\Delta t) &= \frac{D_i}{\gamma_i}\big(x_i(t) - \mu_\infty\big)\Big(e^{-\gamma_i \Delta t} - e^{-2\gamma_i \Delta t}\Big) \\
+    &\quad + \frac{D_i \mu_\infty}{2\gamma_i}\Big(1 - e^{-2\gamma_i \Delta t}\Big)
+    \end{aligned}
+\end{equation}
+
+The full analytical derivation of these moments via Itô's Isometry is provided in the Supplementary Material.
+
+\subsection{Inference engine}
+
+% present Tiago perspective on network inference
+
+% changes and assumptions
+
+\section{Results}
+
+\subsection{The necessity of simple models: the problem of overfitting}
+
+
+
+\subsection{Stochasticity impose strict discretizations boundaries}
+
+\subsection{Working outside stationarity conveys more information}
+
+\subsection{Toward an ensemble perspective}
+
+\paragraph{Probabilistic evaluation of inference results}
+
+\paragraph{Impact on perturbation analysis. The impact of single edges}
+
+\section{Conclusions}
+
+\vspace{0.2 cm}
+
+{\bf Acknowledgments}
+F.Z. is supported by a Decreto Ministeriale n. 118 del 02/03/2023, M4C1 I. 4.1 from Piano Nazionale di Ripresa e Resilienza (PNRR). V.d.A. and M.D.D. acknowledge financial support from the EU funding within the MUR PNRR “National Center for HPC, BIG DATA AND QUANTUM COMPUTING” (Project no. CN00000013 CN1) and from the INFN grant “LINCOLN”. The authors acknowledge the generous support of CloudVeneto for the computing infrastructure.
+
+\vspace{0.2 cm}
+\vspace{0.2 cm}
+
+
+{\bf Author contributions} 
+
+
+
+\vspace{0.2 cm}
+
+
+
+\renewcommand{\bibsection}{\section{References}}
+\bibliographystyle{plainnat}
+\bibliography{biblio}
+
+\end{document}
