@@ -163,7 +163,6 @@ In this kind of systems, the correct inference of the interaction matrix $W$ is 
 
 A particular aspect of the model that we consider is the choice of the multiplicative noise term, which is modeled as a Cox-Ingersoll-Ross (CIR) process. This choice is motivated by the fact that gene expression is known to be a bursty process, where the production of gene products occurs in short bursts rather than at a constant rate. This burstiness can be captured by the multiplicative noise term, which allows for fluctuations in the gene expression levels that are proportional to the current state of the system. In contrast, additive noise would not capture this feature, as it would introduce fluctuations that are independent of the current state of the system.
 
-
 %Paragraph 3: Limitations of Saturation. Discuss the difficulty of inferring saturating dynamics from sparse time-series (if a gene is saturated, changes in input are invisible).
 
 
@@ -226,17 +225,72 @@ The full analytical derivation of these moments via Itô's Isometry is provided 
 
 \subsection{Inference engine}
 
-% present Tiago perspective on network inference
+%Paragraph 1: Graph-Tool Framework. Present Tiago Peixoto’s perspective on network inference (stochastic block models, non-parametric priors).
 
-% changes and assumptions
+Once the generative model is defined, we employ an extension of the Markov Chain Monte Carlo (MCMC) inference engine developed by Peixoto~\cite{peixoto2025}, implemented via the \textit{graph-tool} library. 
+This method incorporates a hierarchical, non-parametric Minimum Description Length (MDL) prior, which goal is to rigorously penalize model complexity without relying on weight shrinkage. It achieves this via \textbf{weight quantization}: rather than treating every non-zero edge as having an infinitely precise, unique weight (which would require infinite information to describe), the algorithm is forced to compress the network's continuous weights into a highly redundant, finite vocabulary of discrete categories. 
+
+This adaptive compression is formalized by marginalizing the prior over several latent structural and parametric variables:
+\begin{equation}
+    \begin{aligned}
+        P(\mathbf{W} \mid \lambda, \Delta) &= \sum_{z,K,\mathbf{A},E} P(\mathbf{W} \mid z, \mathbf{A})\, P(z \mid \lambda, \Delta, K)\, \\
+        &\quad\times P(K \mid \mathbf{A})\,P(\mathbf{A} \mid E)\,P(E)
+    \end{aligned}
+    \label{eq:mdl_prior}
+\end{equation}
+
+where $\mathbf{W}$ represents the continuous interaction weights of the network, and $\mathbf{A}$ is its corresponding binary adjacency matrix containing exactly $E$ non-zero edges. The parameter $K$ denotes the total number of unique, discrete weight categories into which the edges are grouped, while $z = \{z_1, \dots, z_K\}$ represents the set of continuous values for those $K$ categories.
+
+This hierarchical formulation allows the inference engine to dynamically adjust the complexity of the model. Several of the marginal distributions represent simple uniform priors that serve as baseline complexity penalties: $P(E)$ is uniformly distributed over the possible number of edges and $P(K \mid \mathbf{A})$ is uniform over the number of discrete weight categories ($K \le E$).
+
+The term responsible for the sparse structure of the network is:
+
+\begin{equation} 
+    P(\mathbf{A} \mid E) = \frac{\delta_{\sum_{i,j}A_{ij}, E}}{\binom{N^2}{E}} 
+\end{equation}
+
+which penalizes topologies with large number of edges, leading to small description length for sparse graphs.
+
+The other two terms govern how the continuous weights are compressed into the discrete vocabulary $z$. The first one, $P(\mathbf{W} \mid z, \mathbf{A})$, quantifies how much the number of paramters categories impact on the compression level of the data.
+If $m_k$ represents the number of edges assigned to a specific weight category $k$, this probability distribution yields a multinomial combinatorial term proportional to $\frac{\prod_k m_k!}{E!}$. From an MDL perspective, this term heavily rewards parameter reuse. Because the inverse of the multinomial coefficient maximizes when many edges share the exact same weight category (e.g., $m_k$ is large), the algorithm is strongly incentivized to minimize $K$ and group the weights into a small, highly redundant vocabulary.
+
+The second term, $P(z \mid \lambda, \Delta, K)$, prevents the absolute values of the weight categories from diverging. They are drawn from a quantized Laplace distribution defined by the scale parameter $\lambda$ and a numerical precision $\Delta$, yielding a probability proportional to $e^{-\lambda \sum_{k=1}^K |z_k|}$. This does not yeald to strong shrinkage of the weights, making it a more robust alternative to the common LASSO regularization.
+
+Alongside to these terms, the prior could also include the Stochastic Block Model (SBM) with degree correction, which allows the algorithm to exploit the modular structure of the network to further compress the description length. This is particularly useful in the context of gene regulatory networks, where genes are often organized into functional modules that share similar regulatory patterns, and for the case scenario considered in this work, is able to classify between the master regulators and the downstream targets, improving the overall inference performance.
+
+All these elements compose a non-parametric prior that is able to adaptively penalize model complexity, while still allowing for a rich and flexible representation of the network structure and weights. This is crucial for avoiding overfitting and ensuring that the inferred networks are both biologically plausible and statistically robust.
+
+%Paragraph 2: Integration. Explain how your exact analytical likelihood is embedded into the MCMC engine of graph-tool.
+
+To optimize the joint posterior of the network topology and the global kinetic parameters, we employ a block-coordinate optimization scheme. The algorithm alternates between two phases: first, the discrete topological space (edges and block assignments) is sampled stochastically using Metropolis-Hastings MCMC sweeps. The sampling scheme for the topology is based on the $NN_{Descent}$ algorithm, which is able to solve the combinatorial optimization problem in a subquadratic time complexity of order $O(N\,log^2 N)$, instead of the naive $O(N^2)$ time complexity for standard gradient descent algorithms. On the other hand, the classes of parameters values are obtained by a system of merging and splitting of the weight classes and random bisection to obtain new values for the weight categories.
+
+Second, the global continuous kinetic parameters $\theta = \{\gamma, V, D\}$ are deterministically optimized conditional on the current topology using the Nelder-Mead simplex algorithm to minimize the total description length. This choice was made because the likelihood function is convex with respect to the kinetic parameters, and given a fixed topology and weight categories, the optimization problem is well-posed and can be solved efficiently using a deterministic algorithm.
+
+This hybrid approach allows the engine to efficiently navigate the highly combinatorial structural space while quickly relaxing the continuous dynamics into their local optimum.
 
 \section{Results}
 
 \subsection{The necessity of simple models: the problem of overfitting}
 
+In the SDE model we consider (Eq.~1), the dynamical parameters $\theta = \{\gamma, V, D\}$ are global parameters that are shared across all nodes in the network. This means that the inference of these parameters is not node-specific, but rather a global optimization problem that takes into account the entire network's dynamics. 
 
+That is a fantastic observation, and it is a fundamental problem in inverse modeling known as **parameter degeneracy** (or non-identifiability). What you experienced is exactly what happens when a model is overparameterized relative to the sparsity of the data.
+
+A fundamental challenge in inferring SDE-driven networks from sparse time-series data is the degeneracy between intrinsic node dynamics and network-driven coupling. If the kinetic parameters ($\gamma, V, D$) are allowed to vary freely for every individual node, the model becomes overparameterized. Under the MDL framework, the optimizer naturally penalizes structural complexity; thus, it preferentially tunes the local intrinsic parameters to absorb the trajectory variance, resulting in an artificial collapse of the network topology (an empty graph).
+
+To break this degeneracy, we constrain the kinetic parameters to be global, shared symmetrically across all nodes in the network. By stripping the nodes of their individual parametric flexibility, we force the intrinsic dynamics to act as a uniform, homogeneous baseline. Consequently, the only mathematical avenue left for the inference engine to explain the diverse, node-specific heterogeneous fluctuations observed in the data is to reconstruct the true underlying interaction topology $W$. This global constraint acts as a powerful structural inducer, guaranteeing that the inferred network is driven by genuine interactions rather than localized parametric overfitting.
+
+In Fig.~\ref{fig:degeneracy}, we illustrate this phenomenon. When the kinetic parameters are allowed to vary per node, the inferred network collapses to a trivial empty graph, as the optimizer absorbs all variance into the local parameters. In contrast, when the kinetic parameters are constrained globally, the inference engine successfully recovers a rich and biologically plausible network topology.
+% maybe it will depends on the sample size
+
+It is possible to show that this kind of model are able to help to avoid overfitting also with respect to other inference models. We show in Fig.~\ref{fig:comparison} a comparison between the inference performance of our model and other inference models, ...
 
 \subsection{Stochasticity impose strict discretizations boundaries}
+
+As discussed in the previous sections, it is necessary to overcome the discretization error introduced by the Euler-Maruyama approximation, to deal with the large measurement intervals that are typical of biological data. In Fig.~\ref{fig:discretization}, we show the impact of the discretization error on the inference performance, by comparing the inference results obtained using the Euler-Maruyama approximation and the exact analytical integration approach.
+
+
+
 
 \subsection{Working outside stationarity conveys more information}
 

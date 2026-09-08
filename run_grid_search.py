@@ -63,8 +63,8 @@ def run_single_config(dt_meas, M_pairs, t_window, N, trial_id):
         
         state = GeneExprBlockState(s, dt=dt_meas, g=g_init, state_args=dict(deg_corr=True), theta=initial_theta)
         
-        # 100 burn in, 100 sampling
-        state = run_burn_in(state, n_burnin=100, optimize_params=True)
+        # 50 burn in, 100 sampling
+        state = run_burn_in(state, n_burnin=50, optimize_params=True)
         W_ensemble, theta_ensemble = run_posterior_sampling(state, N, n_samples=100, delta_k=1, optimize_params=True)
         
         edge_probabilities, weight_mean, weight_std = compute_ensemble_stats(W_ensemble)
