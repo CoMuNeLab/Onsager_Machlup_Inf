@@ -30,12 +30,14 @@ class GeneExprBlockState(DynamicsBlockStateBase):
                 g = gt.Graph(N, directed=True)
             s = [g.new_vp("vector<double>", vals=arr) for arr in s]
 
+        use_em_likelihood = kwargs.pop("use_em_likelihood", False)
+
         DynamicsBlockStateBase.__init__(
             self, s, g=g, self_loops=self_loops, q_t=q,
             theta=theta, theta_range=theta_range,
             tdelta=tdelta, tdelta_min=tdelta_min,
             disable_tdist=disable_tdist,
-            **dict(dict(directed=True, dt=dt), **kwargs)
+            **dict(dict(directed=True, dt=dt, use_em_likelihood=use_em_likelihood), **kwargs)
         )
         self.theta_first = False
 

@@ -24,6 +24,10 @@ public:
     {
         _dt = python::extract<double>(p.get("dt", 1.0));
         _ldt = log(_dt);
+        if (p.has_key("use_em_likelihood"))
+            _use_em_likelihood = python::extract<bool>(p.get("use_em_likelihood", false));
+        else
+            _use_em_likelihood = false;
     }
 
     [[gnu::flatten]] [[gnu::always_inline]]
@@ -48,14 +52,23 @@ public:
         // UPGRADE: Analytical CIR integration
         double mu_inf = (V * sig_m) / gamma;
         
-        // Exact Mean (Analytical Solution)
-        double exp_g = exp(-gamma * dt);
-        double mu = mu_inf + (x_safe - mu_inf) * exp_g;
+        double mu;
+        double exact_var;
         
-        // Exact Variance (Ito Isometry Solution)
-        double exp_2g = exp(-2.0 * gamma * dt);
-        double exact_var = (D / gamma) * (x_safe - mu_inf) * (exp_g - exp_2g) 
-                         + (D * mu_inf) / (2.0 * gamma) * (1.0 - exp_2g);
+        if (_use_em_likelihood) {
+            // Simple Euler-Maruyama
+            mu = x_safe + (-gamma * x_safe + V * sig_m) * dt;
+            exact_var = 2.0 * D * x_safe * dt; // assuming sqrt(2Dx) dW process
+        } else {
+            // Exact Mean (Analytical Solution)
+            double exp_g = exp(-gamma * dt);
+            mu = mu_inf + (x_safe - mu_inf) * exp_g;
+            
+            // Exact Variance (Ito Isometry Solution)
+            double exp_2g = exp(-2.0 * gamma * dt);
+            exact_var = (D / gamma) * (x_safe - mu_inf) * (exp_g - exp_2g) 
+                             + (D * mu_inf) / (2.0 * gamma) * (1.0 - exp_2g);
+        }
         
         // Standard deviation for the Gaussian likelihood
         double s = sqrt(std::max(1e-10, exact_var)); 
@@ -74,6 +87,7 @@ public:
 
     double _dt = 1.0;
     double _ldt = 0.0;
+    bool _use_em_likelihood = false;
 };
 
 } // namespace graph_tool
