@@ -23,13 +23,13 @@ def run_experiment():
     os.makedirs("results/model_exp", exist_ok=True)
     
     # Simulation settings
-    N = 20
+    N = 10
     M = 500
-    dt_meas = 0.5
+    dt_meas = 0.05
     m = 1
     seed_network = 42
     
-    dt_sim = 0.01
+    dt_sim = 0.005
     dt_sample = 0.5
     mean_d = 0.5
     mean_V = 2.0
@@ -131,17 +131,21 @@ Performance Metrics:
     fig, axes = plt.subplots(1, 4, figsize=(20, 5))
     
     vmax = max(np.max(W_true), np.max(res_1_weight_last), np.max(res_2_weight_last), np.max(res_3_weight_last))
-    
-    sns.heatmap(W_true, ax=axes[0], cmap="Reds", vmin=0, vmax=vmax, cbar=False, square=True)
+    vmin = min(np.min(W_true), np.min(res_1_weight_last), np.min(res_2_weight_last), np.min(res_3_weight_last))
+    # make symmetric bounds around zero using the largest absolute value
+    bound = max(abs(vmin), abs(vmax))
+    vmin_sym, vmax_sym = -bound, bound
+
+    sns.heatmap(W_true, ax=axes[0], cmap="Reds", vmin=vmin_sym, vmax=vmax_sym, center=0, cbar=False, square=True)
     axes[0].set_title("True Weighted Network")
     
-    sns.heatmap(res_1_weight_last, ax=axes[1], cmap="Reds", vmin=0, vmax=vmax, square=True)
+    sns.heatmap(res_1_weight_last, ax=axes[1], cmap="Reds", vmin=vmin_sym, vmax=vmax_sym, center=0, square=True)
     axes[1].set_title("1. Analytical Global\n(Last Weight Sample)")
     
-    sns.heatmap(res_2_weight_last, ax=axes[2], cmap="Reds", vmin=0, vmax=vmax, square=True)
+    sns.heatmap(res_2_weight_last, ax=axes[2], cmap="Reds", vmin=vmin_sym, vmax=vmax_sym, center=0, square=True)
     axes[2].set_title("2. E-M Global\n(Last Weight Sample)")
     
-    sns.heatmap(res_3_weight_last, ax=axes[3], cmap="Reds", vmin=0, vmax=vmax, square=True)
+    sns.heatmap(res_3_weight_last, ax=axes[3], cmap="Reds", vmin=vmin_sym, vmax=vmax_sym, center=0, square=True)
     axes[3].set_title("3. Analytical Local\n(Last Weight Sample)")
     
     plt.tight_layout()
