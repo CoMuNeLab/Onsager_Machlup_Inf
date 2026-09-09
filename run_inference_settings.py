@@ -20,18 +20,18 @@ def run_experiment():
     os.makedirs("results/model_exp", exist_ok=True)
     
     # Simulation settings
-    N = 10
+    N = 20
     M = 500
-    dt_meas = 0.05
+    dt_meas = 1.0
     m = 1
     seed_network = 48
     
     dt_sim = 0.005
-    dt_sample = 0.5
+    dt_sample = 1.0
     mean_d = 0.5
     mean_V = 2.0
     D_base = 0.02
-    t_window = (0.0, 3.0)
+    t_window = (0.0, 5.1)
     
     # 1. Generate Data
     W_true = generate_scale_free_W(N, m, seed=seed_network)
@@ -76,7 +76,7 @@ def run_experiment():
     
     print("\n--- SAVING RESULTS ---")
     np.savez(
-        f"results/model_exp/results_N{N}_M{M}_dt{dt_meas*100:.0f}.npz",
+        f"results/model_exp/results_N{N}_M{M}_dt{dt_meas*10:.0f}.npz",
         W_true=W_true,
         W_true_binary=W_true_binary,
         res_1_prob=res_1_prob,
@@ -97,7 +97,7 @@ Performance Metrics:
 2. E-M Global:        AUC = {auc2:.4f}, AP (AUPRC) = {ap2:.4f}
 3. Analytical Local:  AUC = {auc3:.4f}, AP (AUPRC) = {ap3:.4f}
 """
-    with open("results/model_exp/metrics.txt", "w") as f:
+    with open(f"results/model_exp/metrics_N{N}_M{M}_dt{dt_meas*10:.0f}.txt", "w") as f:
         f.write(metrics_text)
         
     print("Inference completed and saved!")
