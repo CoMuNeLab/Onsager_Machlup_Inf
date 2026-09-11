@@ -8,6 +8,7 @@ import pickle
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error, roc_curve, precision_recall_curve, auc
+from scipy.stats import spearmanr
 
 # Add project root to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -24,9 +25,9 @@ def run_experiment(run_inference=True):
     N = 10
     M_train = 50  # sparse training data to encourage overfitting
     M_test = 50
-    dt_meas = 0.1
     dt_sim = 0.005
     dt_sample = 0.5
+    dt_meas = 0.5
     
     os.makedirs(os.path.join(os.path.dirname(__file__), 'plots'), exist_ok=True)
     results_path = os.path.join(os.path.dirname(__file__), 'plots', 'overfitting_results.pkl')
@@ -61,18 +62,28 @@ def run_experiment(run_inference=True):
         
         results = {}
         
-        def calc_metrics(edge_scores):
+        def calc_all_metrics(y_true_binary, y_true_continuous, y_scores, y_inferred_continuous=None):
             mask = ~np.eye(N, dtype=bool)
-            y_true = W_true_binary[mask]
-            y_scores = edge_scores[mask]
+            y_true_b = y_true_binary[mask]
+            y_s = y_scores[mask]
             
-            fpr, tpr, _ = roc_curve(y_true, y_scores)
+            fpr, tpr, _ = roc_curve(y_true_b, y_s)
             roc_auc = auc(fpr, tpr)
             
-            precision, recall, _ = precision_recall_curve(y_true, y_scores)
+            precision, recall, _ = precision_recall_curve(y_true_b, y_s)
             pr_auc = auc(recall, precision)
             
-            return fpr, tpr, roc_auc, precision, recall, pr_auc
+            spearman_corr, _ = spearmanr(np.abs(y_true_continuous[mask]), np.abs(y_s))
+            
+            sign_acc = np.nan
+            if y_inferred_continuous is not None:
+                true_edges_mask = (y_true_b == 1)
+                if np.any(true_edges_mask):
+                    true_signs = np.sign(y_true_continuous[mask][true_edges_mask])
+                    inf_signs = np.sign(y_inferred_continuous[mask][true_edges_mask])
+                    sign_acc = np.mean(true_signs == inf_signs)
+            
+            return fpr, tpr, roc_auc, precision, recall, pr_auc, spearman_corr, sign_acc
 
         # ---------------------------------------------------------
         # Method 1: Random Forest (dynGENIE3-like)
@@ -91,13 +102,16 @@ def run_experiment(run_inference=True):
             rf_train_preds[:, i] = rf.predict(X_train_in[:, mask])
             rf_test_preds[:, i] = rf.predict(X_test_in[:, mask])
             
-        fpr, tpr, roc_auc, precision, recall, pr_auc = calc_metrics(rf_edge_scores)
+        fpr, tpr, roc_auc, precision, recall, pr_auc, spearman, sign_acc = calc_all_metrics(
+            W_true_binary, W_true, rf_edge_scores, y_inferred_continuous=None
+        )
         rf_train_mse = mean_squared_error(X_train_out, rf_train_preds)
         rf_test_mse = mean_squared_error(X_test_out, rf_test_preds)
         
         results['dynGENIE3 (RF)'] = {
             'AUPRC': pr_auc, 'AUROC': roc_auc,
             'Train MSE': rf_train_mse, 'Test MSE': rf_test_mse,
+            'Spearman': spearman, 'Sign Accuracy': sign_acc,
             'FPR': fpr, 'TPR': tpr, 'Precision': precision, 'Recall': recall,
             'W': rf_edge_scores
         }
@@ -107,6 +121,7 @@ def run_experiment(run_inference=True):
         # ---------------------------------------------------------
         print("Running Sparse ODE (Lasso)...")
         lasso_edge_scores = np.zeros((N, N))
+        lasso_coefs_signed = np.zeros((N, N))
         lasso_train_preds = np.zeros_like(dX_train)
         lasso_test_preds = np.zeros_like(dX_test)
         
@@ -116,10 +131,13 @@ def run_experiment(run_inference=True):
             lasso = Lasso(alpha=0.01, random_state=42)
             lasso.fit(X_train_in[:, mask], dX_train[:, i])
             lasso_edge_scores[i, mask] = np.abs(lasso.coef_)
+            lasso_coefs_signed[i, mask] = lasso.coef_
             lasso_train_preds[:, i] = lasso.predict(X_train_in[:, mask])
             lasso_test_preds[:, i] = lasso.predict(X_test_in[:, mask])
             
-        fpr, tpr, roc_auc, precision, recall, pr_auc = calc_metrics(lasso_edge_scores)
+        fpr, tpr, roc_auc, precision, recall, pr_auc, spearman, sign_acc = calc_all_metrics(
+            W_true_binary, W_true, lasso_edge_scores, y_inferred_continuous=lasso_coefs_signed
+        )
         
         lasso_X_train_preds = X_train_in + lasso_train_preds * dt_meas
         lasso_X_test_preds = X_test_in + lasso_test_preds * dt_meas
@@ -130,6 +148,7 @@ def run_experiment(run_inference=True):
         results['Sparse ODE (Lasso)'] = {
             'AUPRC': pr_auc, 'AUROC': roc_auc,
             'Train MSE': lasso_train_mse, 'Test MSE': lasso_test_mse,
+            'Spearman': spearman, 'Sign Accuracy': sign_acc,
             'FPR': fpr, 'TPR': tpr, 'Precision': precision, 'Recall': recall,
             'W': lasso_edge_scores
         }
@@ -140,28 +159,36 @@ def run_experiment(run_inference=True):
         print("Running Graph-Tool SDE...")
         from inference_pipeline.inference.mcmc_engine import run_burn_in, run_posterior_sampling, compute_ensemble_stats
         
+        # Instantiate an empty graph in graph-tool format
         g_init = gt.Graph(directed=True)
         g_init.add_vertex(N)
-        
-        # Add ~5% density of random edges to jump-start the MCMC
+
+        # Add ~5% density of random edges to jump-start the MCMC and avoid the empty graph trap
         num_initial_edges = max(1, int(N * N * 0.05))
         possible_edges = [(u, v) for u in range(N) for v in range(N) if u != v]
         np.random.shuffle(possible_edges)
         for u, v in possible_edges[:num_initial_edges]:
             g_init.add_edge(u, v)
-            
+
+        # Initialize the custom state with an uninformative prior
         initial_theta = [0.0, 0.0, np.log(0.05)]
-        
-        state = GeneExprBlockState(s_train, dt=dt_meas, g=g_init, state_args=dict(deg_corr=True), theta=initial_theta, use_em_likelihood=False, self_loops=False)
-        
-        # 100 burn in, 100 sampling
+        state = GeneExprBlockState(s_train, dt=dt_meas, g=g_init, state_args=dict(deg_corr=False), theta=initial_theta)
+        print(f"Initial description length (empty network): {state.entropy():.4f}")
+
+        # Phase 1: Burn-in
         state = run_burn_in(state, n_burnin=50, theta_mode="global")
-        W_ensemble, theta_ensemble = run_posterior_sampling(state, N, n_samples=100, delta_k=1, theta_mode="global")
-        
+
+        # Phase 2: Posterior Sampling
+        n_samples = 100
+        W_ensemble, theta_ensemble = run_posterior_sampling(state, N, n_samples=n_samples, delta_k=1, theta_mode="global")
+
+        # Compute and save ensemble stats
         edge_probabilities, weight_mean, weight_std = compute_ensemble_stats(W_ensemble)
-        gt_edge_scores = edge_probabilities
+        gt_edge_scores = edge_probabilities * np.abs(weight_mean)
         
-        fpr, tpr, roc_auc, precision, recall, pr_auc = calc_metrics(gt_edge_scores)
+        fpr, tpr, roc_auc, precision, recall, pr_auc, spearman, sign_acc = calc_all_metrics(
+            W_true_binary, W_true, gt_edge_scores, y_inferred_continuous=weight_mean
+        )
         
         # --- Compute GT MSE ---
         def sigmoid_np(x):
@@ -189,6 +216,7 @@ def run_experiment(run_inference=True):
         results['Graph-Tool SDE'] = {
             'AUPRC': pr_auc, 'AUROC': roc_auc,
             'Train MSE': gt_train_mse, 'Test MSE': gt_test_mse,
+            'Spearman': spearman, 'Sign Accuracy': sign_acc,
             'FPR': fpr, 'TPR': tpr, 'Precision': precision, 'Recall': recall,
             'W': gt_edge_scores
         }
@@ -215,6 +243,11 @@ def run_experiment(run_inference=True):
         print(f"{method}:")
         print(f"  AUPRC:     {metrics['AUPRC']:.4f}")
         print(f"  AUROC:     {metrics['AUROC']:.4f}")
+        print(f"  Spearman:  {metrics.get('Spearman', np.nan):.4f}")
+        if not np.isnan(metrics.get('Sign Accuracy', np.nan)):
+            print(f"  Sign Acc:  {metrics['Sign Accuracy']:.4f}")
+        else:
+            print(f"  Sign Acc:  N/A")
         if not np.isnan(metrics['Test MSE']):
             print(f"  Train MSE: {metrics['Train MSE']:.4f}")
             print(f"  Test MSE:  {metrics['Test MSE']:.4f}")

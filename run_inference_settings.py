@@ -20,7 +20,7 @@ def run_experiment():
     os.makedirs("results/model_exp", exist_ok=True)
     
     # Simulation settings
-    N = 20
+    N = 10
     M = 500
     dt_meas = 1.0
     m = 1
