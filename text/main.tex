@@ -287,18 +287,24 @@ It is possible to show that this kind of model are able to help to avoid overfit
 
 \subsection{Stochasticity impose strict discretizations boundaries}
 
+% Present the "Stress Discretization" benchmarking results. Show how the naive E-M approach collapses as \delta t increases, while your Analytical Transition approach maintains robust AUPRC/AUROC scores.
+
 As discussed in the previous sections, it is necessary to overcome the discretization error introduced by the Euler-Maruyama approximation, to deal with the large measurement intervals that are typical of biological data. In Fig.~\ref{fig:discretization}, we show the impact of the discretization error on the inference performance, by comparing the inference results obtained using the Euler-Maruyama approximation and the exact analytical integration approach.
 
 
-
-
 \subsection{Working outside stationarity conveys more information}
+
+% Demonstrate that inference relies on transient dynamics. If the GRN is stuck at a steady-state, highly correlated genes are indistinguishable from causal genes. Show that trajectories actively relaxing to steady-state provide the necessary causal information.
 
 \subsection{Toward an ensemble perspective}
 
 \paragraph{Probabilistic evaluation of inference results}
 
-\paragraph{Impact on perturbation analysis. The impact of single edges}
+% Show that the MCMC produces a distribution of networks. Define edge probabilities rather than binary present/absent edges.
+
+\paragraph{Impact on perturbation analysis}
+
+% The ultimate biological payoff: demonstrate that predicting the effect of a drug/knockout (perturbation) is highly sensitive to single edges. Show how an ensemble of networks gives a confidence interval for a perturbation outcome, whereas a single MAP network gives a brittle, potentially wrong prediction.
 
 \section{Conclusions}
 

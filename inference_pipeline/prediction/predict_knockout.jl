@@ -169,3 +169,10 @@ plot!(p, [0, 0], [min_val, max_val], color=:gray, linestyle=:dot, label="")
 
 savefig("images/delta_stationary_states_plot.png")
 println("Saved images/delta_stationary_states_plot.png successfully!")
+
+println("Exporting stationary states to binary for Python...")
+write("results/stat_inferred_pert.bin", stat_inferred_pert)
+write("results/stat_inferred_unpert.bin", stat_inferred_unpert)
+write("results/stat_true_pert.bin", stat_true_pert)
+write("results/stat_true_unpert.bin", stat_true_unpert)
+println("Stationary states exported successfully!")
