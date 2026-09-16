@@ -66,8 +66,8 @@ public:
             
             // Exact Variance (Ito Isometry Solution)
             double exp_2g = exp(-2.0 * gamma * dt);
-            exact_var = (D / gamma) * (x_safe - mu_inf) * (exp_g - exp_2g) 
-                             + (D * mu_inf) / (2.0 * gamma) * (1.0 - exp_2g);
+            exact_var = (2.0 * D / gamma) * (x_safe - mu_inf) * (exp_g - exp_2g) 
+                             + (D * mu_inf) / gamma * (1.0 - exp_2g);
         }
         
         // Standard deviation for the Gaussian likelihood
