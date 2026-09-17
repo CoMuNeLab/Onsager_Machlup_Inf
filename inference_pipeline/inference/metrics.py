@@ -35,7 +35,6 @@ def plot_probabilistic_network(W_true, edge_probabilities, save_path="images/pro
     """
     import os
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    
     true_adj = (W_true != 0).astype(int)
     
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
@@ -45,7 +44,7 @@ def plot_probabilistic_network(W_true, edge_probabilities, save_path="images/pro
     axes[0].set_xlabel("Source Gene")
     axes[0].set_ylabel("Target Gene")
     
-    sns.heatmap(edge_probabilities, ax=axes[1], cmap="Reds", vmin=0, vmax=1, square=True)
+    sns.heatmap(edge_probabilities, ax=axes[1], cmap="Reds", vmin=0, vmax=edge_probabilities.max(), square=True)
     axes[1].set_title("Inferred Edge Probabilities")
     axes[1].set_xlabel("Source Gene")
     axes[1].set_ylabel("Target Gene")

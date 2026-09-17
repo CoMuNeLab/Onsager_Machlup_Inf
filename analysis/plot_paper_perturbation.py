@@ -54,7 +54,7 @@ def main():
     print("Generating 3-Panel Paper Figure...")
     
     sns.set_theme(style="whitegrid", context="paper", font_scale=1.3)
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    fig, axes = plt.subplots(2, 1, figsize=(6, 10))
     
     # Perfect match range
     min_val = min(delta_true[mask].min(), mean_delta_inf[mask].min(), best_delta_inf[mask].min()) - 0.2
@@ -64,17 +64,14 @@ def main():
     ax = axes[0]
     ax.scatter(
         delta_true[mask], best_delta_inf[mask],
-        color='crimson', s=80, edgecolor='white', linewidth=1, label="MAP Prediction"
+        color='crimson', s=80, edgecolor='white', linewidth=1, label="MAP Prediction", zorder=10
     )
     ax.plot([min_val, max_val], [min_val, max_val], 'k--', lw=2, alpha=0.7)
     
     ax.set_xlabel("True $\Delta$ Steady State", fontweight='bold')
     ax.set_ylabel("Single Best $\Delta$ Steady State", fontweight='bold')
-    ax.set_title(f"A. Point-Estimate Failure\n(Spearman $\\rho$ = {spearman_best:.2f})")
+    #ax.set_title(f"A. Point-Estimate Failure\n(Spearman $\\rho$ = {spearman_best:.2f})")
     ax.legend(loc="upper left")
-    
-    # --- PANEL B: Ensemble Expected ---
-    ax = axes[1]
     
     lower_bound = np.percentile(delta_inferred, 2.5, axis=0)
     upper_bound = np.percentile(delta_inferred, 97.5, axis=0)
@@ -89,11 +86,11 @@ def main():
     
     ax.set_xlabel("True $\Delta$ Steady State", fontweight='bold')
     ax.set_ylabel("Expected Inferred $\Delta$ Steady State", fontweight='bold')
-    ax.set_title(f"B. Ensemble Robustness\n(Spearman $\\rho$ = {spearman_ens:.2f}, Calib = {calib_metrics['fraction_within_ci']:.0%})")
+    #ax.set_title(f"B. Ensemble Robustness\n(Spearman $\\rho$ = {spearman_ens:.2f}, Calib = {calib_metrics['fraction_within_ci']:.0%})")
     ax.legend(loc="upper left")
     
     # --- PANEL C: KDE Density for a divergent node ---
-    ax = axes[2]
+    ax = axes[1]
     
     target_node = 8 # Node 8 showed massive divergence between MAP and Ensemble
     
@@ -110,7 +107,8 @@ def main():
     
     ax.set_xlabel(f"Perturbed Steady State (Node {target_node+1})", fontweight='bold')
     ax.set_ylabel("Probability Density", fontweight='bold')
-    ax.set_title("C. Resolving Uncertainty (Node 9)")
+    ax.set_ylim([0, 0.8])
+    #ax.set_title("C. Resolving Uncertainty (Node 9)")
     ax.legend(loc="upper left")
     
     plt.tight_layout(pad=3.0)

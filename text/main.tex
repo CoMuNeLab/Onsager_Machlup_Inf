@@ -95,6 +95,52 @@ Recovering the interaction structure of a complex stochastic dynamical system fr
 
 \section{Introduction}
 
+% network inference is important
+Inferring the structure of a complex dynamical system from time-series observations is a fundamental challenge in the physical, biological, and data sciences~\cite{newman2018network,peixoto2025network,nitzan2017revealing,timme2007revealing, brunton2016discovering}. 
+%%% \valeria{aggiungerei altre referenze, ad esempio (non necessariamente in quest'ordine):}
+%%% Aggiunti: Peixoto PRX 2025, Newman NatPhys 2018, Barzel NatPhys 2013, Peel NatComm 2022, Nitzan SciAdv 2017, Timme 2007
+%%% Guimerà PNAS 2009: data are referred to edges
+
+% in particular GRN inference is important
+In particular, inferring the structure of gene regulatory networks (GRNs) from gene expression is a crucial problem in systems biology, with important implications for understanding cellular function and disease mechanisms~\cite{karlebach2008modelling, barabasi2011network}. Knowing the structure of the GRN allows us to predict how the system will respond to perturbations such as gene knockouts or drug treatments, and to identify potential therapeutic targets. 
+% structure and dynamics are intertwined
+However, structure and dynamics are deeply intertwined in complex systems~\cite{gross2008adaptive,barzel2013universality,ghavasieh2024diversity,strogatz2024nonlinear,barzon2024unraveling,sole2001complexity,de2026decoding}, and thus inferring the network structure without explicitly modeling the underlying dynamics can lead to inaccurate and unreliable results. %chiedere a manlio per la referenza
+% paramter non-identifiability and structural non-identifiability
+When the system is governed by nonlinear, stochastic dynamics, and the observations are noisy and limited in time, the problem becomes particularly severe: multiple distinct configurations of the interactions can produce trajectories that are statistically indistinguishable from the data~\cite{villaverde2014reverse}. These difficulties, broadly referred to as structural non-identifiability, call for inference approaches that go beyond point estimation, instead quantifying and propagating uncertainty over the full space of plausible model configurations.
+% likelihood discontinuity and network emergence
+Another important factor is that when dealing with networks, even small changes in the parameters can lead to large changes in the system's behavior, due to the emergence of collective phenomena and critical transitions~\cite{boccaletti2006complex,dorogovtsev2008critical,pastor2015epidemic, strogatz2024nonlinear}. This leads to highly discontinuous likelihood landscapes, where the maxima are isolated and separated by low-probability barriers. For this reason, in most of the cases, standard incremental optimization methods are not good solutions for such problems.
+%%% \valeria{altri paper eventalmente da citare: , Pastor Satorras RMP 2015,...}
+%%%Aggiunti: Boccaletti Phys Rep 2006,  Dorogovtsev 2008 RMP
+% importance of bayesian inference and uncertainty quantification
+A natural and principled route to this goal is Bayesian inference, in which a posterior distribution over model parameters is obtained by combining a likelihood function for the observed data with prior knowledge about the system~\cite{peixoto2019network, newman2018network,raimondo2021measuring,peel2022statistical,peixoto2025network}. This approach allows us to quantify uncertainty over the inferred interactions, which is crucial for guiding experimental validation and for making reliable predictions about the system's behavior.
+
+% existing methods
+%% correlation based methods
+Most of the methodologies proposed to tackle this problem rely on statistical associations between observed variables, such as correlation or mutual information, to infer the presence of interactions between them~\cite{margolin2006aracne,marbach2012wisdom, marku2023time}. Additionally, they do not provide measures of uncertainty over the inferred interactions, which is crucial for guiding experimental validation and for making reliable predictions about the system's behavior. 
+%% bayesian structure learning and graphical models, DAGs
+Other methods attempt to learn the posterior distribution over network configurations using Bayesian structure learning techniques, often based on graphical models and directed acyclic graphs (DAGs)~\cite{glymour2019review}. These methods can provide uncertainty estimates, but they typically assume that the underlying system is governed by a DAG structure, which is not always valid in real systems, and thus they cannot properly capture cyclic interactions, which are common in biological systems. Additionally, they often rely on assumptions of stationarity and equilibrium, which are not always valid in real systems, and thus they cannot fully exploit the information contained in non-equilibrium trajectories, which are often the only ones available in real experiments.
+%% cyclic structure learning methods
+Given the inherently cyclic nature of gene regulatory systems, it is crucial to consider methods that can capture such interactions. Multiple approaches have been proposed to solve the issue in different fields~\cite{huang2020causal,runge2019detecting}. However, these methods have limitations, such as single point estimation, lack of uncertainty quantification, and reliance on assumptions that may not hold in real systems, such as stationarity and equilibrium.
+%% work atanokvic
+A recent approach~\cite{atanackovic2023dyngfn} addresses some of these limitations by proposing a Bayesian framework for inferring cyclic interactions from time-series data by modeling the system's latent drift function through either linear solvers or non-linear MLPs. While this method represents a significant step forward, it still does not explicitly define the mechanistic SDE model underlying the dynamics, and thus remains of difficult interpretation, comparison with other mechanistic models of gene regulation and with the risk of data overfitting. Additionally, it does not provide a principled way to select the dynamical parameters of the SDE model, such as noise amplitude and relaxation rates.
+
+% Our proposal  
+%% Building likelihood
+What is needed to overcome these limitations is a mechanistic, ensemble-based Bayesian framework that can rigorously define a likelihood for non-equilibrium trajectories generated by a mechanistic SDE model, while also providing a tractable sampling algorithm to explore the high-dimensional and multimodal posterior distribution over network configurations.
+%% likelihood based on path probability
+We propose a rigorous method to build a likelihood for non-equilibrium trajectories generated by a mechanistic SDE model, based on the Onsager-Machlup path probability formalism~\cite{onsager1953fluctuations}. This path-probability likelihood has a decisive advantage over approaches based on stationary distributions: it is valid for both transient and non-equilibrium trajectories, enabling the full information content of time-series data to be exploited without requiring prior knowledge of the system's stationary state or equilibrium properties.
+%% explicit prior integration to avoid non-identifiability and overfitting
+Data alone is often insufficient to identify the true network structure, due to the fundamental non-identifiability of the problem. To overcome this issue, we explicitly integrate prior knowledge about the system into the inference process, by defining a prior distribution over network configurations that encodes relevant constraints based on biological knowledge. This allows us to guide the inference process towards more plausible configurations, and to avoid overfitting, which is a common problem in high-dimensional inference problems.
+%% multimodality and parallel tempering
+High probability regions in the parameter space are often separated by low-probability barriers, leading to a multimodal posterior distribution. To efficiently explore this complex landscape, we use a node-wise block-coordinate Metropolis-Hastings sampling algorithm that exploits the factorization of the path probability over target nodes to make posterior sampling tractable, while maintaining ergodicity guarantees. We combine it with a parallel tempering scheme to further enhance the exploration of the parameter space and to being able to escape from local minima.
+%% model comparison
+%% final output
+What we obtain from this procedure is an ensemble of configurations for the parameters, each weighted by its posterior probability, that can be analyzed to extract probabilistic measures on the system under analysis rather than a single point estimate, which is crucial for guiding experimental validation and for making reliable predictions about the system's behavior~\cite{peel2022statistical}.
+
+% Applications
+%% Syntetic network on nonlinear SDE model
+As a primary application, we start from a nonlinear SDE model with sigmoidal activation functions -- capturing saturation, oscillatory, and noise-driven regimes -- and then we perform inference on synthetic networks. We show that the ensemble approach provides a more reliable reconstruction of the true network topology than single-point estimation, in particular for the prediction of gene knockout effects. We also demonstrate how incorporating sparse prior knowledge about network connectivity and known regulatory interactions improves inference in data-limited regimes.
+
 \section{Bayesian Network Inference}
 
 %Paragraph 1: The Inverse Problem. Formulate network reconstruction as an inverse problem. Introduce Bayes' Theorem.
@@ -203,9 +249,6 @@ The governing SDE for a single gene isolated during this time step reduces to a 
 By isolating the gene's state variable $x_t$, the SDE is mathematically equivalent to a continuous CIR process, which permits an exact analytical solution for its transition moments regardless of the magnitude of $\Delta t$.
 
 %Paragraph 4: Theoretical Bounds. Briefly report the exact mean (exponential relaxation) and exact variance (via Itô's Isometry), proving it eliminates the discretization boundary constraints.
-
-Here is the concise, standalone mathematical block you can drop directly into the main text of your article. It gives the reader the exact formulas they need to implement the likelihood, while leaving the heavy stochastic calculus (Itô's Isometry) for the Supplementary Material.
-
 The exact transition probability density for the state of node $i$ at time $t+\Delta t$ can be approximated by a Gaussian $\mathcal{N}(\mu, \Sigma)$, parameterized by its exact analytical moments. 
     
 By defining the deterministic steady-state asymptote as $\mu_\infty = \frac{V \, \sigma(m_i(t))}{\gamma}$, the exact expected mean is given by the exponential relaxation:
@@ -270,6 +313,8 @@ This hybrid approach allows the engine to efficiently navigate the highly combin
 
 \section{Results}
 
+To systematically evaluate the performance of our Bayesian inference framework, we conducted a comprehensive grid search analysis on synthetic scale-free gene regulatory networks. The experimental setup was designed to explore a wide range of realistic observational conditions by varying the network size ($N$), the number of sampled time-series pairs ($M_{pairs}$), the sampling interval ($dt_{meas}$), and the dynamical regime from which the data were collected (transient vs.\ stationary). The results of this extensive analysis demonstrate the robustness of the ensemble-based approach in recovering the underlying true network topology. In particular, the grid search revealed that the method performs best when operating on non-equilibrium transient trajectories and when employing the exact analytical transition probability, which successfully mitigates the severe discretization errors that typically plague naive approximations at large sampling intervals. In the following subsections, we delve into the specific insights drawn from these experiments.
+
 \subsection{The necessity of simple models: the problem of overfitting}
 
 In the SDE model we consider (Eq.~1), the dynamical parameters $\theta = \{\gamma, V, D\}$ are global parameters that are shared across all nodes in the network. This means that the inference of these parameters is not node-specific, but rather a global optimization problem that takes into account the entire network's dynamics. 
@@ -283,7 +328,10 @@ To break this degeneracy, we constrain the kinetic parameters to be global, shar
 In Fig.~\ref{fig:degeneracy}, we illustrate this phenomenon. When the kinetic parameters are allowed to vary per node, the inferred network collapses to a trivial empty graph, as the optimizer absorbs all variance into the local parameters. In contrast, when the kinetic parameters are constrained globally, the inference engine successfully recovers a rich and biologically plausible network topology.
 % maybe it will depends on the sample size
 
-It is possible to show that this kind of model are able to help to avoid overfitting also with respect to other inference models. We show in Fig.~\ref{fig:comparison} a comparison between the inference performance of our model and other inference models, ...
+It is possible to show that this kind of model are able to help avoiding overfitting also with respect to other inference models. 
+This was performed in a comprehensive benchmarking study where our proposed Bayesian stochastic differential equation (SDE) approach was compared against four distinct canonical paradigms: dynGENIE3~\cite{huynh2018dyngenie3} (non-parametric tree-based inference), Sparse ODE via Lasso~\cite{tibshirani1996regression, bonneau2006inferelator} (sparse parametric linear recovery), Granger Causality~\cite{granger1969investigating, shojaie2010discovering} (classical statistical temporal prediction), and PySINDy~\cite{kaptanoglu2021pysindy} (modern data-driven sequential thresholding). Over independent replicates of simulated scale-free networks, we assessed the models on their structural recovery and predictive generalization. 
+
+The results indicated a strong tendency for standard baselines to overfit the highly transient training data. In particular, while dynGENIE3 reached comparable structural recovery performances, it exhibited a significant discrepancy between its training and out-of-sample test prediction errors, indicating that it overfitted the data. Conversely, our Graph-Tool SDE implementation provided robust structural inference while maintaining almost identical training and test errors. This parity indicates strong trajectory compression and out-of-sample generalization, demonstrating that the central advantage of the method lies in the Bayesian framework's inherent capacity to prevent overfitting and accurately recover the underlying causal interactions.
 
 \subsection{Stochasticity impose strict discretizations boundaries}
 
@@ -296,15 +344,30 @@ As discussed in the previous sections, it is necessary to overcome the discretiz
 
 % Demonstrate that inference relies on transient dynamics. If the GRN is stuck at a steady-state, highly correlated genes are indistinguishable from causal genes. Show that trajectories actively relaxing to steady-state provide the necessary causal information.
 
+
 \subsection{Toward an ensemble perspective}
 
-\paragraph{Probabilistic evaluation of inference results}
+
+
+\paragraph{Probabilistic evaluation of inference results\\}
 
 % Show that the MCMC produces a distribution of networks. Define edge probabilities rather than binary present/absent edges.
+Standard network inference methods typically yield a single, optimal point-estimate of the network topology. However, biological systems are heavily under-determined, meaning many distinct network structures can explain the observed data equally well. To address this, we approach the inference problem probabilistically using Markov Chain Monte Carlo (MCMC) sampling. Rather than forcing binary present/absent edge decisions, the MCMC produces a posterior distribution of viable network topologies. From this ensemble, we can compute marginal edge probabilities and expected interaction weights, effectively shifting the paradigm from finding the ``one true network'' to capturing and quantifying the full structural uncertainty inherent in the data.
 
-\paragraph{Impact on perturbation analysis}
+Evaluating this probabilistic output requires a departure from traditional binary classification metrics. To assess topological accuracy, standard metrics such as the Area Under the Receiver Operating Characteristic (AUROC) and Precision-Recall Curve (AUPRC) were adapted by utilizing the marginal edge probabilities as natural confidence scores. However, evaluating the inferred regulatory \textit{weights} presents a deeper challenge; due to parameter non-identifiability in non-linear dynamical systems, absolute parameter values often diverge even when the dynamic behavior is perfectly captured. Therefore, we evaluated the quantitative reconstruction by focusing on the relative hierarchy of regulatory interactions. We employed Rank-Biased Overlap (RBO) and Spearman Rank correlation to compare the expected inferred weights against the true network, emphasizing that predicting the correct hierarchy of top master-regulators is biologically more relevant than exact parameter matching. (A comprehensive formulation of these metrics, alongside distributional evaluations using the Wasserstein distance, is detailed in the Supplementary Materials).
+
+\paragraph{Impact on perturbation analysis\\}
 
 % The ultimate biological payoff: demonstrate that predicting the effect of a drug/knockout (perturbation) is highly sensitive to single edges. Show how an ensemble of networks gives a confidence interval for a perturbation outcome, whereas a single MAP network gives a brittle, potentially wrong prediction.
+
+
+The ultimate biological payoff of this probabilistic framework lies in forecasting the downstream effects of targeted interventions, such as drug treatments or gene knockouts. Predicting perturbation outcomes is highly sensitive to individual false-positive or false-negative edges; a single incorrect regulatory link in a point-estimate model can catastrophically derail the simulated dynamics. To assess the predictive robustness of our approach, we performed an \textit{in silico} perturbation experiment by simulating a gene knockout and evaluating the resulting systemic shift in steady states. We contrasted the predictive power of the full posterior ensemble against the Maximum A Posteriori (MAP) estimate—the single sampled network with the minimum description length. 
+
+While the MAP point-estimate generalized poorly to the perturbation due to overfitting the wild-type data ($\rho = 0.800$), marginalizing over topological uncertainty allowed the expected shift of the ensemble to accurately predict the systemic response ($\rho = 0.983$). 
+
+Crucially, propagating an ensemble of networks through non-linear dynamics often yields complex, non-trivial probability distributions for the downstream steady states, making simple point-to-point comparisons insufficient. To properly evaluate these predictions, we employed a Kernel Density Estimation (KDE) log-likelihood metric to measure how well the true perturbed states were supported by the ensemble's predicted probability densities. The necessity of this probabilistic approach was most evident in edge cases such the one depicted in Fig.~\ref{}. 
+
+For this downstream target, the MAP point-estimate erroneously predicted almost no regulatory change ($\Delta \approx -0.13$). However, the true biological response was a massive down-regulation ($\Delta \approx -1.01$). Evaluation of the ensemble's KDE revealed a highly informative, non-trivial probability distribution that explicitly captured this massive down-regulation, placing the true state in a region of high predictive likelihood. This demonstrates that point-estimates can fail catastrophically in downstream predictions, and that resolving and propagating structural uncertainty is critical for reliable perturbation forecasting in biological networks.
 
 \section{Conclusions}
 

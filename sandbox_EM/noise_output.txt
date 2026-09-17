@@ -1,0 +1,70 @@
+Running experiments with mean_d=0.5, D_base=0.5, mean_V=2.0, dt=1.0
+
+--- PHASE 1: Equilibration (50 sweeps) ---
+Burn-in Sweep  1/50: Entropy = 1632.3266 (dS_topo = -474.9923, dS_param = -39.0480, moves = 6486)
+Burn-in Sweep 10/50: Entropy = 1609.5500 (dS_topo =  23.3378, dS_param =  -0.1649, moves = 6718)
+Burn-in Sweep 20/50: Entropy = 1625.7900 (dS_topo =  -0.1478, dS_param =  -1.2139, moves = 5507)
+Burn-in Sweep 30/50: Entropy = 1596.1751 (dS_topo = -15.8754, dS_param =  -0.4780, moves = 4268)
+Burn-in Sweep 40/50: Entropy = 1505.7391 (dS_topo =   4.3754, dS_param =  -0.1502, moves = 6308)
+Burn-in Sweep 50/50: Entropy = 1549.2651 (dS_topo = -83.1220, dS_param =  -0.6428, moves = 7610)
+
+--- PHASE 2: Sampling (50 samples, thinning 1) ---
+Sample   1/50: Entropy = 1505.7148
+Sample  10/50: Entropy = 1485.3436
+Sample  20/50: Entropy = 1524.8623
+Sample  30/50: Entropy = 1485.7589
+Sample  40/50: Entropy = 1521.0353
+Sample  50/50: Entropy = 1690.2983
+
+--- PHASE 1: Equilibration (50 sweeps) ---
+Burn-in Sweep  1/50: Entropy = 1639.9763 (dS_topo = -5578.3955, dS_param = -99.1901, moves = 6355)
+Burn-in Sweep 10/50: Entropy = 1587.4021 (dS_topo =  -9.4331, dS_param =  -0.6027, moves = 6694)
+Burn-in Sweep 20/50: Entropy = 1588.9201 (dS_topo =  10.0933, dS_param =  -0.0841, moves = 5944)
+Burn-in Sweep 30/50: Entropy = 1564.1075 (dS_topo =  20.1607, dS_param =  -0.0053, moves = 10164)
+Burn-in Sweep 40/50: Entropy = 1551.9121 (dS_topo =   2.4460, dS_param =  -0.3886, moves = 5451)
+Burn-in Sweep 50/50: Entropy = 1769.5912 (dS_topo =  44.3445, dS_param =  -0.3747, moves = 6837)
+
+--- PHASE 2: Sampling (50 samples, thinning 1) ---
+Sample   1/50: Entropy = 1733.3587
+Sample  10/50: Entropy = 1947.7518
+Sample  20/50: Entropy = 1893.5549
+Sample  30/50: Entropy = 1872.1821
+Sample  40/50: Entropy = 1756.6946
+Sample  50/50: Entropy = 1769.8389
+
+--- PHASE 1: Equilibration (50 sweeps) ---
+Burn-in Sweep  1/50: Entropy = 2033.7347 (dS_topo = -83.6415, dS_param = -69.0457, moves = 6499)
+Burn-in Sweep 10/50: Entropy = 1988.8537 (dS_topo =  15.5680, dS_param =  -0.4774, moves = 8538)
+Burn-in Sweep 20/50: Entropy = 2004.9167 (dS_topo =  -2.7421, dS_param =  -0.0684, moves = 5989)
+Burn-in Sweep 30/50: Entropy = 1971.5175 (dS_topo =   2.1264, dS_param =  -0.1038, moves = 7568)
+Burn-in Sweep 40/50: Entropy = 1973.5373 (dS_topo =   0.7205, dS_param =  -0.1731, moves = 7100)
+Burn-in Sweep 50/50: Entropy = 1984.1927 (dS_topo =   3.1523, dS_param =  -0.2320, moves = 12094)
+
+--- PHASE 2: Sampling (50 samples, thinning 1) ---
+Sample   1/50: Entropy = 1982.9610
+Sample  10/50: Entropy = 1973.3402
+Sample  20/50: Entropy = 1974.4904
+Sample  30/50: Entropy = 1974.2216
+Sample  40/50: Entropy = 1968.3744
+Sample  50/50: Entropy = 2023.0289
+
+--- PHASE 1: Equilibration (50 sweeps) ---
+Burn-in Sweep  1/50: Entropy = 2171.0569 (dS_topo = -270.6389, dS_param = -185.1131, moves = 6215)
+Burn-in Sweep 10/50: Entropy = 2043.9506 (dS_topo =  -1.7117, dS_param = -20.8748, moves = 6026)
+Burn-in Sweep 20/50: Entropy = 2026.4735 (dS_topo =  -3.2262, dS_param =  -0.1874, moves = 5949)
+Burn-in Sweep 30/50: Entropy = 2026.4169 (dS_topo =   0.5096, dS_param =  -0.0559, moves = 8417)
+Burn-in Sweep 40/50: Entropy = 2040.6576 (dS_topo =  -4.0260, dS_param =  -1.0937, moves = 5920)
+Burn-in Sweep 50/50: Entropy = 2031.1089 (dS_topo =   5.1691, dS_param =  -0.1588, moves = 6727)
+
+--- PHASE 2: Sampling (50 samples, thinning 1) ---
+Sample   1/50: Entropy = 2036.0841
+Sample  10/50: Entropy = 2047.7256
+Sample  20/50: Entropy = 2065.2721
+Sample  30/50: Entropy = 2073.5190
+Sample  40/50: Entropy = 2069.5226
+Sample  50/50: Entropy = 2067.1860
+Results saved to results_noise.csv
+             AUROC     AUPRC
+Method                      
+EM        0.744170  0.260116
+Standard  0.715706  0.306488
