@@ -216,51 +216,34 @@ A particular aspect of the model that we consider is the choice of the multiplic
 
 %Paragraph 4: Ground Truth Generation. Explain the choice of a scale-free topology for generating the synthetic validation data and parameter selection.
 
-\subsection{Beyond Euler-Maruyama: Exact Transition Moments for Large Measurement Intervals}
+\subsection{Theoretical Validation: Exact Transition Moments}
 
-%Paragraph 1: The Likelihood Bottleneck. Explain that Bayesian inference requires evaluating the probability of discrete trajectory points. Introduce the standard Euler-Maruyama (E-M) discretization.
+%Paragraph 2: Theoretical Flaws of E-M. Explain why E-M is mathematically expected to fail for large sampling intervals (tangent overshoots, unbounded variance).
 
-To compute the total likelihood of a trajectory (Eq.~\ref{eq:general_likelihood}), the stohastic process is treated as a Markov chain, requiring the evaluation of the transition probability $P(\mathbf{x}_{t_m+\Delta t}|\mathbf{x}_{t_m}, \mathbf{W}, \theta)$ for every step.
+While computationally trivial, the Euler-Maruyama linear approximation is mathematically guaranteed to become unstable at large measurement intervals ($\Delta t$), which are common in real-world transcriptomic time-series (e.g., hours between sampling). Under large $\Delta t$, the linear tangent completely ignores the exponential relaxation inherent to the $-\gamma x_t$ degradation term. If the degradation rate is fast ($\gamma \Delta t > 1$), this results in severe mathematical overshoot, where the predicted mean may oscillate and drop below zero. Furthermore, EM assumes the variance grows linearly without bound ($2D x_t \Delta t$), ignoring the variance saturation caused by mean-reverting dynamics.
 
+%Paragraph 3: The Exact Transition Moments. Introduce the Zero-Order Hold assumption to derive the exact CIR moments.
 
-Traditionally, this transition probability is approximated using the Euler-Maruyama numerical scheme. This approach assumes that the entire drift derivative remains constant over the measurement interval $\Delta t$, yielding a Gaussian transition density:
-
-\begin{equation}
-    P(x_{t+\Delta t} \mid \mathbf{X}_t) \sim \mathbf{N}\left( x_t + \Delta t \big(-\gamma x_t + V\sigma(m_t)\big), \; D x_t \Delta t \right)
-\end{equation}
-
-where $m_t = \sum_{j=1}^{N} W_{ij}\, x_j(t)$ is the aggregate regulatory input to node $i$ at time $t$.
-
-
-%Paragraph 2: The Discretization Penalty. Detail why E-M fails for biological data: large sampling intervals cause massive tangent overshoots, forcing the optimizer to break the network topology to compensate.
-
-While computationally trivial, this approximation introduces catastrophic structural bias when applied to sparse biological datasets. Real-world transcriptomic time-series often exhibit large measurement intervals (e.g., hours between sampling). Under large $\Delta t$, the Euler-Maruyama linear tangent completely ignores the exponential relaxation inherent to the $-\gamma x_t$ degradation term. This results in severe mathematical overshoot, where the predicted mean may drop below zero or artificially inflate.
-
-%Paragraph 3: The Exact Transition Solution. Introduce the Zero-Order Hold assumption on the regulatory input. Show how this isolates a linear SDE that can be solved exactly.
-
-To mitigate the discretization error without incurring the computationally intractable cost of inferring unobserved latent variables between measurement points, we introduce an exact analytical integration approach predicated on a zero-order hold assumption.
-
-We assume that the aggregate regulatory input from the rest of the network, $m_i(t)$, remains piecewise constant over the short interval $[t, t+\Delta t]$. Under this assumption, the non-linear coupling term $V \, \sigma(m_i(t))$ simplifies to a constant scalar $b$.
+To construct a theoretical stress-test and validate the robustness of this discretization, we introduce an exact analytical integration approach predicated on a zero-order hold assumption. We assume that the aggregate regulatory input from the rest of the network, $m_i(t)$, remains piecewise constant over the short interval $[t, t+\Delta t]$. Under this assumption, the non-linear coupling term $V \, \sigma(m_i(t))$ simplifies to a constant scalar $b$.
 
 The governing SDE for a single gene isolated during this time step reduces to a strictly linear stochastic differential equation:
 
-\[ dx_t = (-\gamma x_t + b) dt + \sqrt{D x_t} dW_t \]
+\[ dx_t = (-\gamma x_t + b) dt + \sqrt{2D x_t} dW_t \]
 
-By isolating the gene's state variable $x_t$, the SDE is mathematically equivalent to a continuous CIR process, which permits an exact analytical solution for its transition moments regardless of the magnitude of $\Delta t$.
+By isolating the gene's state variable $x_t$, the SDE is mathematically equivalent to a continuous CIR process, which permits an exact analytical solution for its transition moments regardless of the magnitude of $\Delta t$. 
 
-%Paragraph 4: Theoretical Bounds. Briefly report the exact mean (exponential relaxation) and exact variance (via Itô's Isometry), proving it eliminates the discretization boundary constraints.
-The exact transition probability density for the state of node $i$ at time $t+\Delta t$ can be approximated by a Gaussian $\mathcal{N}(\mu, \Sigma)$, parameterized by its exact analytical moments. 
+%Paragraph 4: Theoretical Bounds. Report the exact mean and exact variance (via Itô's Isometry).
     
-By defining the deterministic steady-state asymptote as $\mu_\infty = \frac{V \, \sigma(m_i(t))}{\gamma}$, the exact expected mean is given by the exponential relaxation:
+By defining the deterministic steady-state asymptote as $\mu_\infty = \frac{V \, \sigma(m_i(t))}{\gamma}$, the exact expected mean is strictly bounded by the exponential relaxation:
 
 \[ \mu(t+\Delta t) = \mu_\infty + \big(x_i(t) - \mu_\infty\big)e^{-\gamma_i \Delta t} \]
 
-And the exact integrated variance accumulated over the interval $\Delta t$ is given by:
+And the exact integrated variance accumulated over the interval $\Delta t$ correctly saturates to a finite limit:
 
 \begin{equation}
     \begin{aligned}
-    \Sigma(t+\Delta t) &= \frac{D_i}{\gamma_i}\big(x_i(t) - \mu_\infty\big)\Big(e^{-\gamma_i \Delta t} - e^{-2\gamma_i \Delta t}\Big) \\
-    &\quad + \frac{D_i \mu_\infty}{2\gamma_i}\Big(1 - e^{-2\gamma_i \Delta t}\Big)
+    \Sigma(t+\Delta t) &= \frac{2D_i}{\gamma_i}\big(x_i(t) - \mu_\infty\big)\Big(e^{-\gamma_i \Delta t} - e^{-2\gamma_i \Delta t}\Big) \\
+    &\quad + \frac{D_i \mu_\infty}{\gamma_i}\Big(1 - e^{-2\gamma_i \Delta t}\Big)
     \end{aligned}
 \end{equation}
 
@@ -313,13 +296,13 @@ This hybrid approach allows the engine to efficiently navigate the highly combin
 
 \section{Results}
 
-To systematically evaluate the performance of our Bayesian inference framework, we conducted a comprehensive grid search analysis on synthetic scale-free gene regulatory networks. The experimental setup was designed to explore a wide range of realistic observational conditions by varying the network size ($N$), the number of sampled time-series pairs ($M_{pairs}$), the sampling interval ($dt_{meas}$), and the dynamical regime from which the data were collected (transient vs.\ stationary). The results of this extensive analysis demonstrate the robustness of the ensemble-based approach in recovering the underlying true network topology. In particular, the grid search revealed that the method performs best when operating on non-equilibrium transient trajectories and when employing the exact analytical transition probability, which successfully mitigates the severe discretization errors that typically plague naive approximations at large sampling intervals. In the following subsections, we delve into the specific insights drawn from these experiments.
+To systematically evaluate the performance of our Bayesian inference framework, we conducted a comprehensive grid search analysis on synthetic scale-free gene regulatory networks. The experimental setup was designed to explore a wide range of realistic observational conditions by varying the network size ($N$), the number of sampled time-series pairs ($M_{pairs}$), the sampling interval ($dt_{meas}$), and the dynamical regime from which the data were collected (transient vs.\ stationary). The results of this extensive analysis demonstrate the robustness of the ensemble-based approach in recovering the underlying true network topology. 
+
+In particular, the grid search revealed that the method performs best when operating on non-equilibrium transient trajectories and when employing the exact analytical transition probability, which successfully mitigates the severe discretization errors that typically plague naive approximations at large sampling intervals. In the following subsections, we delve into the specific insights drawn from these experiments.
 
 \subsection{The necessity of simple models: the problem of overfitting}
 
 In the SDE model we consider (Eq.~1), the dynamical parameters $\theta = \{\gamma, V, D\}$ are global parameters that are shared across all nodes in the network. This means that the inference of these parameters is not node-specific, but rather a global optimization problem that takes into account the entire network's dynamics. 
-
-That is a fantastic observation, and it is a fundamental problem in inverse modeling known as **parameter degeneracy** (or non-identifiability). What you experienced is exactly what happens when a model is overparameterized relative to the sparsity of the data.
 
 A fundamental challenge in inferring SDE-driven networks from sparse time-series data is the degeneracy between intrinsic node dynamics and network-driven coupling. If the kinetic parameters ($\gamma, V, D$) are allowed to vary freely for every individual node, the model becomes overparameterized. Under the MDL framework, the optimizer naturally penalizes structural complexity; thus, it preferentially tunes the local intrinsic parameters to absorb the trajectory variance, resulting in an artificial collapse of the network topology (an empty graph).
 
@@ -333,16 +316,33 @@ This was performed in a comprehensive benchmarking study where our proposed Baye
 
 The results indicated a strong tendency for standard baselines to overfit the highly transient training data. In particular, while dynGENIE3 reached comparable structural recovery performances, it exhibited a significant discrepancy between its training and out-of-sample test prediction errors, indicating that it overfitted the data. Conversely, our Graph-Tool SDE implementation provided robust structural inference while maintaining almost identical training and test errors. This parity indicates strong trajectory compression and out-of-sample generalization, demonstrating that the central advantage of the method lies in the Bayesian framework's inherent capacity to prevent overfitting and accurately recover the underlying causal interactions.
 
-\subsection{Stochasticity impose strict discretizations boundaries}
+\begin{figure*}
+    \centering
+    \includegraphics[width=\textwidth]{../papers_figures/Fig3.png}
+    \caption{\textbf{Constraining kinetic parameters to be global prevents overfitting and enables accurate network inference.} When the kinetic parameters $\theta = \{\gamma, V, D\}$ are allowed to vary freely for each node, the inference engine collapses the network topology to a trivial empty graph (left). In contrast, when the kinetic parameters are constrained to be global and shared across all nodes, the inference engine successfully recovers a rich and biologically plausible network topology (right). This demonstrates that constraining the kinetic parameters is crucial for preventing overfitting and ensuring that the inferred network reflects genuine interactions rather than localized parametric flexibility.}
+    \label{fig:degeneracy}
+\end{figure*}
 
-% Present the "Stress Discretization" benchmarking results. Show how the naive E-M approach collapses as \delta t increases, while your Analytical Transition approach maintains robust AUPRC/AUROC scores.
+\subsection{Bayesian Topology Inference is Robust to SDE Discretization Errors}
 
-As discussed in the previous sections, it is necessary to overcome the discretization error introduced by the Euler-Maruyama approximation, to deal with the large measurement intervals that are typical of biological data. In Fig.~\ref{fig:discretization}, we show the impact of the discretization error on the inference performance, by comparing the inference results obtained using the Euler-Maruyama approximation and the exact analytical integration approach.
+% Present the "Stress Discretization" benchmarking results. Show how the naive E-M approach performances are compatible with the one from the exact model, and thus we can stick to it because it is computationally cheaper.
 
+The Euler-Maruyama (E-M) approximation is a widely used method for discretizing stochastic differential equations (SDEs) due to its simplicity and computational efficiency. However, it is well-known that E-M can introduce significant discretization errors, particularly when the sampling interval $\Delta t$ is large relative to the system's intrinsic relaxation timescales.
+To assess the impact of these discretization errors on network inference, we conducted a systematic benchmarking study comparing the performance of our inference engine using both the exact analytical transition moments and the E-M approximation across a range of sampling intervals.
+What we found is that both method lead to comparable inference performances, even at large $\Delta t$ where E-M is theoretically expected to fail. 
+
+A possible explanation for this surprising result is that the inference engine is able to compensate for the discretization errors introduced by E-M by adjusting the global kinetic parameters $\theta = \{\gamma, V, D\}$. In particular, the optimizer can tune these parameters to effectively "absorb" the discrepancies between the E-M approximation and the true dynamics, allowing the inference engine to still recover a plausible network topology.
+
+This suggests that, for the purpose of network inference, the E-M approximation is sufficiently accurate and can be used as a computationally cheaper alternative to the exact analytical method.
 
 \subsection{Working outside stationarity conveys more information}
 
 % Demonstrate that inference relies on transient dynamics. If the GRN is stuck at a steady-state, highly correlated genes are indistinguishable from causal genes. Show that trajectories actively relaxing to steady-state provide the necessary causal information.
+
+Our Bayesian SDE approach is particularly well-suited for analyzing non-equilibrium transient trajectories, which are often the only type of data available in real-world biological experiments. In contrast, many existing methods rely on stationary or equilibrium assumptions, which can lead to misleading inferences when applied to transient data.
+To illustrate this, we analyze the performance of our method on synthetic datasets generated from both transient and stationary regimes. The results show that the inference engine achieves significantly higher accuracy when operating on transient trajectories, as these contain richer causal information about the underlying network structure. In contrast, stationary data often lead to ambiguous correlations that can confound the inference process.
+
+This can be particularly useful in the context of gene regulatory networks, where the system is often perturbed by external stimuli or environmental changes, leading to transient responses that reveal the causal relationships between genes. By leveraging the full information content of these non-equilibrium trajectories, our Bayesian SDE framework is able to recover more accurate and biologically meaningful network topologies.
 
 
 \subsection{Toward an ensemble perspective}
