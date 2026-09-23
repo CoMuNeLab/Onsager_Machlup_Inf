@@ -1,0 +1,156 @@
+%%
+%% Supplementary Information (Additional File 1) for
+%% muxvizpy — Application Note for Bioinformatics
+%%
+%% Single-column standalone document.
+%%
+\documentclass[11pt,onecolumn]{article}
+
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bbm} % for \mathbbm{1} (indicator / all-ones symbol)
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage[round,authoryear]{natbib}
+\usepackage[colorlinks=true,allcolors=blue!55!black]{hyperref}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+
+\graphicspath{{Fig/}{media/}}
+
+% Theorem-like environments
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+% "S" prefixes for a supplementary document
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\thesubsection}{S\arabic{section}.\arabic{subsection}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thealgorithm}{S\arabic{algorithm}}
+\renewcommand{\thedefinition}{S\arabic{definition}}
+\renewcommand{\theremark}{S\arabic{remark}}
+\renewcommand{\theequation}{S\arabic{equation}}
+
+% Local helpers
+\newcommand{\tbd}[1]{\textcolor{blue}{[TBD] #1}}
+\newcommand{\mat}[1]{\mathbf{#1}}
+\newcommand{\ten}[1]{\boldsymbol{\mathcal{#1}}}
+\newcommand{\supra}{\mat{A}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+% Placeholder box for figures whose benchmark/accuracy results are still pending.
+% Swap the whole \placeholderfig line for an \includegraphics once results exist.
+\newcommand{\placeholderfig}[2][\linewidth]{%
+  \setlength{\fboxsep}{0pt}%
+  \fcolorbox{black!35}{black!8}{%
+    \parbox[c][0.4\textwidth][c]{#1}{%
+      \centering\itshape\color{black!60}%
+      [PLACEHOLDER]\\[4pt]#2\\[6pt]%
+      \upshape\footnotesize results pending%
+    }%
+  }%
+}
+
+\title{\textbf{Supplementary Information}\\[4pt]
+\Large A Probabilistic Ensemble-Based Bayesian Method for Mechanistic GRN Inference}
+\author{Francesco Zambelli, Valeria D'Andrea, Manlio De Domenico}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Likelihood Convexity}
+
+To determine whether the likelihood is convex or not with respect to the interaction matrix weights, we compute the Hessian matrix and verify that it is semi-positive definite.
+
+We focus on a single node $i$. Under the Euler-Maruyama discretization, the objective function to minimize (the negative log-likelihood) over $M$ time steps is the sum of squared residuals:
+
+$$ \mathcal{L}(\mathbf{W}_i) = \frac{1}{4D \Delta t} \sum_{k=1}^M (e_{i,k})^2 $$
+
+Where the residual error $e_{i,k}$ at time step $k$ is defined as:
+
+$$ e_{i,k} = x_{i, k} - x_{i, k-1} - \Delta t \Big( -\gamma_i x_{i, k-1} + V_i \sigma(z_{i,k-1}) \Big) $$
+
+And $z_{i,k-1} = \sum_{j} W_{ij} x_{j,k-1}$ is the total input to the sigmoid function.
+
+The first derivative is:
+$$ \frac{\partial \mathcal{L}}{\partial W_{ij}} = \frac{1}{2D \Delta t} \sum_{k=1}^M e_{i,k} \frac{\partial e_{i,k}}{\partial W_{ij}} $$
+
+Taking the derivative of the residual $e_{i,k}$ with respect to $W_{ij}$:
+$$ \frac{\partial e_{i,k}}{\partial W_{ij}} = - \Delta t \, V_i \, \sigma'(z_{i,k-1}) \, x_{j, k-1} $$
+
+So the gradient is:
+$$ \frac{\partial \mathcal{L}}{\partial W_{ij}} = - \frac{V_i}{2D} \sum_{k=1}^M e_{i,k} \, \sigma'(z_{i,k-1}) \, x_{j, k-1} $$
+
+Taking the second derivative, we get the entries of the Hessian matrix:
+
+$$ H_{i,j} = \frac{\partial^2 \mathcal{L}}{\partial W_{ij} \partial W_{il}} = \frac{1}{2D \Delta t} \sum_{k=1}^M \left[ \frac{\partial e_{i,k}}{\partial W_{ij}} \frac{\partial e_{i,k}}{\partial W_{il}} + e_{i,k} \frac{\partial^2 e_{i,k}}{\partial W_{ij} \partial W_{il}} \right] $$
+
+Unpacking each term:
+    $$ \frac{\partial e_{i,k}}{\partial W_{ij}} \frac{\partial e_{i,k}}{\partial W_{il}} = \Delta t^2 V_i^2 [\sigma'(z_{i,k-1})]^2 \, x_{j, k-1} \, x_{l, k-1} $$
+    
+    $$ e_{i,k} \frac{\partial^2 e_{i,k}}{\partial W_{ij} \partial W_{il}} = - \Delta t \, V_i \, e_{i,k} \, \sigma''(z_{i,k-1}) \, x_{j, k-1} \, x_{l, k-1} $$
+
+Combining both terms and factoring out 
+$x_{j, k-1} x_{l, k-1}$, the full Hessian matrix element is:
+
+$$ H_{jl} = \frac{V_i}{2D} \sum_{k=1}^M x_{j, k-1} x_{l, k-1} \underbrace{\left[ \Delta t \, V_i \big(\sigma'(z_{i,k-1})\big)^2 - e_{i,k} \, \sigma''(z_{i,k-1}) \right]}_{c_k} $$
+
+In matrix form, the Hessian is $\mathbf{H} = \mathbf{X}^T \mathbf{C} \mathbf{X}$, where $\mathbf{C}$ is a diagonal matrix containing the coefficients $c_k$. 
+
+\begin{equation}
+    c_k = \Delta t \, V_i \big(\sigma'(z_{i,k-1})\big)^2 - e_{i,k} \, \sigma''(z_{i,k-1})
+    \label{eq::ck}
+\end{equation}
+
+For the likelihood $\mathcal{L}$ to be strictly convex, the Hessian $\mathbf{H}$ must be Positive Semi-Definite (PSD) everywhere. This requires that the coefficient $c_k \ge 0$ for all time steps $k$.
+Looking at \ref{eq::ck}, we can notice that the first term is always positive, while the second one can be negative, given that the second derivative of the sigmoid changes sign with respect to the sign of the argument.
+
+This fact does not allow to be sure that a simple gradient descent algorithm can safely converge to the global minimum of the likelihood function. 
+
+\section{Parameter Indistinguishability}
+
+\subsection{Equilibrium Scaling Degeneracy ($\gamma_i \sim V_i$)}
+
+Near dynamic equilibrium or steady state, the drift vanishes ($\Delta x_i(t) / \Delta t \approx 0$), yielding the stationary expectation:
+
+$$x_i^* = \frac{V_i}{\gamma_i} \sigma\left( \sum_j W_{ij} x_j^* \right)$$
+
+If both degradation $\gamma_i$ and transcription scale $V_i$ are multiplied by a scale factor $c > 0$:
+
+$$\gamma_i \mapsto c \gamma_i, \quad V_i \mapsto c V_i \implies \frac{cV_i}{c\gamma_i} = \frac{V_i}{\gamma_i}$$
+
+Thus, the stationary expression $x_i^*$ is invariant to uniform scaling of $(\gamma_i, V_i)$. In data lacking strong non-equilibrium transients, MCMC proposals along the ridge $\gamma_i = c V_i$ produce identical steady-state predictions.
+
+\subsection{Sigmoid Saturation Degeneracy ($|m_i| \gg 1$)}
+
+The derivative of the drift term with respect to an edge weight $W_{ij}$ is:
+
+$$\frac{\partial f_i}{\partial W_{ij}} = V_i \frac{\partial \sigma(m_i)}{\partial m_i} x_j = V_i \sigma(m_i)\left(1 - \sigma(m_i)\right) x_j$$
+
+When total regulatory input $|m_i| = \left|\sum_j W_{ij} x_j\right|$ is large, the sigmoid saturates ($\sigma(m_i) \to 0$ or $1$). In this saturated regime, the gradient vanishes:
+
+$$\lim_{|m_i| \to \infty} \sigma(m_i)(1 - \sigma(m_i)) = 0$$
+
+Consequently, once an edge $W_{ij}$ drives gene $i$ into saturation, further changes to $W_{ij}$ or addition of new edges $W_{ik}$ produce virtually zero change in log-likelihood ($\Delta S \approx 0$), causing edge misinference.
+
+\subsection{Multiplicative Linear Indeterminacy ($V_i W_{ij} = \text{const}$)}
+
+When regulatory inputs are small ($|m_i| \lesssim 1$), the sigmoid operates in its linear regime ($\sigma(m_i) \approx \frac{1}{2} + \frac{1}{4} m_i$). The drift simplifies to:
+
+$$f_i(x) \approx -\gamma_i x_i + \frac{1}{2} V_i + \frac{1}{4} V_i \sum_j W_{ij} x_j$$
+
+In this linear regime, scaling $V_i \mapsto \alpha V_i$ while inversely scaling edge weights $W_{ij} \mapsto \alpha^{-1} W_{ij}$ leaves the effective interaction strength $V_i W_{ij}$ unchanged, introducing a multiplicative degeneracy between node parameters and edge weights.
+
+
+\bibliographystyle{oup-abbrvnat}
+\bibliography{reference}
+
+\end{document}
