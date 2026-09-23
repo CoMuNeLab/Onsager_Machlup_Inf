@@ -24,7 +24,7 @@ def plot_publication_figure(data_path="data/publication_likelihood_benchmark.csv
         'High_Noise': r'High Noise ($\gamma=0.5, D=0.2$)'
     }
     
-    fig, axes = plt.subplots(2, 3, figsize=(15, 10), sharex=True)
+    fig, axes = plt.subplots(2, 3, figsize=(18, 6), sharex=True)
     
     # Set custom colors and linestyles
     palette = {'Standard': '#1f77b4', 'EM': '#d62728'}  # Blue for Exact, Red for EM

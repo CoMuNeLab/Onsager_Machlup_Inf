@@ -254,7 +254,7 @@ The full analytical derivation of these moments via Itô's Isometry is provided 
 %Paragraph 1: Graph-Tool Framework. Present Tiago Peixoto’s perspective on network inference (stochastic block models, non-parametric priors).
 
 Once the generative model is defined, we employ an extension of the Markov Chain Monte Carlo (MCMC) inference engine developed by Peixoto~\cite{peixoto2025}, implemented via the \textit{graph-tool} library. 
-This method incorporates a hierarchical, non-parametric Minimum Description Length (MDL) prior, which goal is to rigorously penalize model complexity without relying on weight shrinkage. It achieves this via \textbf{weight quantization}: rather than treating every non-zero edge as having an infinitely precise, unique weight (which would require infinite information to describe), the algorithm is forced to compress the network's continuous weights into a highly redundant, finite vocabulary of discrete categories. 
+This method incorporates a hierarchical, non-parametric Minimum Description Length (MDL) prior, which goal is to rigorously penalize model complexity without relying on weight shrinkage. It achieves this via weight quantization: rather than treating every non-zero edge as having an infinitely precise, unique weight (which would require infinite information to describe), the algorithm is forced to compress the network's continuous weights into a highly redundant, finite vocabulary of discrete categories. 
 
 This adaptive compression is formalized by marginalizing the prior over several latent structural and parametric variables:
 \begin{equation}
@@ -299,6 +299,14 @@ This hybrid approach allows the engine to efficiently navigate the highly combin
 To systematically evaluate the performance of our Bayesian inference framework, we conducted a comprehensive grid search analysis on synthetic scale-free gene regulatory networks. The experimental setup was designed to explore a wide range of realistic observational conditions by varying the network size ($N$), the number of sampled time-series pairs ($M_{pairs}$), the sampling interval ($dt_{meas}$), and the dynamical regime from which the data were collected (transient vs.\ stationary). The results of this extensive analysis demonstrate the robustness of the ensemble-based approach in recovering the underlying true network topology. 
 
 In particular, the grid search revealed that the method performs best when operating on non-equilibrium transient trajectories and when employing the exact analytical transition probability, which successfully mitigates the severe discretization errors that typically plague naive approximations at large sampling intervals. In the following subsections, we delve into the specific insights drawn from these experiments.
+
+\subsection{Reconstruction Performance and Parameter Sensitivity}
+
+The grid search analysis highlights several key features of the network reconstruction task, particularly regarding the sensitivity of the inference to the number of samples ($M$) and the measurement interval ($dt_{meas}$).
+
+As expected, increasing the number of time-series pairs $M$ initially leads to a significant improvement in the reconstruction accuracy, yielding higher True Positive Rates (TPR) and overall F1-Scores. However, we observe that for very large values of $M$, the inference engine exhibits signs of overfitting to the noise inherent in the trajectories. In this high-data limit, while the TPR remains robustly high, the False Positive Rate (FPR) begins to increase. This suggests that the optimizer, overwhelmed by the sheer volume of stochastic fluctuations, starts to infer spurious edges to explain away the noise, rather than capturing genuine structural interactions.
+
+Furthermore, the inference performance displays a non-trivial dependency on the sampling interval $dt_{meas}$. Extremely short intervals result in highly correlated, redundant states that provide little causal information, whereas very large intervals mask the high-frequency dynamics and lead to a loss of resolution in the interactions. Consequently, the optimal reconstruction is achieved at intermediate values of $dt_{meas}$, where the sampled trajectories capture both the short-term causal responses and the long-term structural relaxation of the network.
 
 \subsection{The necessity of simple models: the problem of overfitting}
 

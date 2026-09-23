@@ -115,22 +115,30 @@ def main():
     dt_vals = [0.2, 0.5, 0.8, 1.1, 1.4, 1.7]
     seeds = list(range(1, 11))  # 10 seeds
     
+    out_file = "data/publication_likelihood_benchmark.csv"
+    os.makedirs("data", exist_ok=True)
+    
+    completed_jobs = set()
+    all_results = []
+    
+    if os.path.exists(out_file):
+        try:
+            df_existing = pd.read_csv(out_file)
+            all_results = df_existing.to_dict('records')
+            for _, row in df_existing.iterrows():
+                completed_jobs.add((row['Regime'], row['Seed'], row['dt']))
+            print(f"Loaded {len(df_existing)} existing rows. Found {len(completed_jobs)} completed jobs.")
+        except Exception as e:
+            print(f"Could not read existing file: {e}")
+    
     jobs = []
     for (regime_name, mean_d, D_base) in regimes:
         for dt in dt_vals:
             for seed in seeds:
-                jobs.append((seed, dt, mean_d, D_base, regime_name))
+                if (regime_name, seed, dt) not in completed_jobs:
+                    jobs.append((seed, dt, mean_d, D_base, regime_name))
                 
-    print(f"Total jobs to run: {len(jobs)}")
-    
-    out_file = "data/publication_likelihood_benchmark.csv"
-    os.makedirs("data", exist_ok=True)
-    
-    # We will write incrementally to not lose data
-    if os.path.exists(out_file):
-        os.remove(out_file)
-        
-    all_results = []
+    print(f"Total new jobs to run: {len(jobs)}")
     
     # Use pool to run in parallel
     num_cores = max(1, multiprocessing.cpu_count() - 2)
