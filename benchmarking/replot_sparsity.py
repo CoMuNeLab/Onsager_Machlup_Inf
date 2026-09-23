@@ -17,17 +17,19 @@ def replot():
 
     # Plotting (Publication Quality)
     sns.set_theme(style="ticks", context="paper", font_scale=1.5)
+    fontsize = 30
     
-    fig, axes = plt.subplots(1, 2, figsize=(6, 5))
+    fig, axes = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
     
     # 1. MAE Plot
     ax_mae = axes[0]
     data_mae = [results['Global']['mae'], results['Local']['mae']]
-    sns.boxplot(data=data_mae, ax=ax_mae, palette=['#4C72B0', '#DD8452'], showfliers=False, width=0.5, boxprops={'alpha': 0.6})
-    sns.stripplot(data=data_mae, ax=ax_mae, color='black', size=8, jitter=True, alpha=0.8)
+    sns.boxplot(data=data_mae, ax=ax_mae, palette=['#4C72B0', '#DD8452'], showfliers=False, width=0.5, boxprops={'alpha': 0.6}, linewidth=3, medianprops={'color': 'black', 'linewidth': 2})
+    sns.stripplot(data=data_mae, ax=ax_mae, color='black', size=12, jitter=True, alpha=0.8)
     ax_mae.set_xticks([0, 1])
     ax_mae.set_xticklabels(['Global', 'Local'], rotation=0)
-    ax_mae.set_ylabel('MAE')
+    ax_mae.set_ylabel('MAE', fontsize=fontsize)
+    ax_mae.tick_params(axis='both', which='major', labelsize=fontsize)
     #ax_mae.set_title('Inference Error (Weights)', pad=15)
     sns.despine(ax=ax_mae)
     
@@ -35,14 +37,14 @@ def replot():
     ax_pr = axes[1]
     data_pr = [results['Global']['auprc'], results['Local']['auprc']]
     
-    sns.boxplot(data=data_pr, ax=ax_pr, palette=['#4C72B0', '#DD8452'], showfliers=False, width=0.5, boxprops={'alpha': 0.6})
-    sns.stripplot(data=data_pr, ax=ax_pr, color='black', size=8, jitter=True, alpha=0.8)
+    sns.boxplot(data=data_pr, ax=ax_pr, palette=['#4C72B0', '#DD8452'], showfliers=False, width=0.5, boxprops={'alpha': 0.6}, linewidth=3, medianprops={'color': 'black', 'linewidth': 2})
+    sns.stripplot(data=data_pr, ax=ax_pr, color='black', size=12, jitter=True, alpha=0.8)
     
     ax_pr.set_xticks([0, 1])
     ax_pr.set_xticklabels(['Global', 'Local'], rotation=0)
-    ax_pr.set_ylabel('AUPRC')
-    #ax_pr.set_title('Inference Accuracy', pad=15)
-    ax_pr.set_ylim(-0.05, 1.05)
+    ax_pr.set_ylabel('AUPRC', fontsize=fontsize)
+    ax_pr.tick_params(axis='both', which='major', labelsize=fontsize)
+    ax_pr.set_ylim(0.5, 1.05)
     sns.despine(ax=ax_pr)
     
     plt.tight_layout()

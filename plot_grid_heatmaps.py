@@ -83,6 +83,7 @@ def main():
         return
         
     # Aggregate over trials
+    df.to_csv(os.path.join(results_dir, "performance_metrics_extended_raw.csv"), index=False)
     df_agg = df.groupby(["N", "M_pairs", "dt_meas", "Regime"]).mean().reset_index()
     df_agg.to_csv(os.path.join(results_dir, "performance_metrics_extended.csv"), index=False)
     

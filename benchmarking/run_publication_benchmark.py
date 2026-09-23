@@ -14,22 +14,25 @@ from inference_pipeline.data_generation.simulator import simulate_realistic_pair
 from inference_pipeline.inference.mcmc_engine import run_burn_in, run_posterior_sampling, compute_ensemble_stats
 from sklearn.metrics import roc_curve, auc, precision_recall_curve
 
-def calc_metrics(y_true_binary, y_scores):
+def calc_metrics(W_true, W_inferred, y_true_binary, y_scores):
     N = y_true_binary.shape[0]
     mask = ~np.eye(N, dtype=bool)
+    
     y_true_b = y_true_binary[mask]
     y_s = y_scores[mask]
     
     if np.sum(y_true_b) == 0 or np.sum(y_true_b) == len(y_true_b):
-        return np.nan, np.nan
+        roc_auc, pr_auc = np.nan, np.nan
+    else:
+        fpr, tpr, _ = roc_curve(y_true_b, y_s)
+        roc_auc = auc(fpr, tpr)
         
-    fpr, tpr, _ = roc_curve(y_true_b, y_s)
-    roc_auc = auc(fpr, tpr)
+        precision, recall, _ = precision_recall_curve(y_true_b, y_s)
+        pr_auc = auc(recall, precision)
+        
+    mae = np.mean(np.abs(W_true[mask] - W_inferred[mask]))
     
-    precision, recall, _ = precision_recall_curve(y_true_b, y_s)
-    pr_auc = auc(recall, precision)
-    
-    return roc_auc, pr_auc
+    return roc_auc, pr_auc, mae
 
 def run_single_job(args):
     seed, dt, mean_d, D_base, regime_name = args
@@ -75,10 +78,11 @@ def run_single_job(args):
             W_ensemble_std, _ = run_posterior_sampling(state_std, N, n_samples=50, delta_k=1, theta_mode="global")
             edge_prob_std, weight_mean_std, _ = compute_ensemble_stats(W_ensemble_std)
             scores_std = edge_prob_std * np.abs(weight_mean_std)
-            roc_auc_std, pr_auc_std = calc_metrics(W_true_binary, scores_std)
+            W_inferred_std = edge_prob_std * weight_mean_std
+            roc_auc_std, pr_auc_std, mae_std = calc_metrics(W_true, W_inferred_std, W_true_binary, scores_std)
         except Exception as e:
             print(f"[{regime_name} dt={dt} seed={seed}] Standard failed: {e}")
-            roc_auc_std, pr_auc_std = np.nan, np.nan
+            roc_auc_std, pr_auc_std, mae_std = np.nan, np.nan, np.nan
             
         # --- EM Method ---
         try:
@@ -87,18 +91,19 @@ def run_single_job(args):
             W_ensemble_em, _ = run_posterior_sampling(state_em, N, n_samples=50, delta_k=1, theta_mode="global")
             edge_prob_em, weight_mean_em, _ = compute_ensemble_stats(W_ensemble_em)
             scores_em = edge_prob_em * np.abs(weight_mean_em)
-            roc_auc_em, pr_auc_em = calc_metrics(W_true_binary, scores_em)
+            W_inferred_em = edge_prob_em * weight_mean_em
+            roc_auc_em, pr_auc_em, mae_em = calc_metrics(W_true, W_inferred_em, W_true_binary, scores_em)
         except Exception as e:
             print(f"[{regime_name} dt={dt} seed={seed}] EM failed: {e}")
-            roc_auc_em, pr_auc_em = np.nan, np.nan
+            roc_auc_em, pr_auc_em, mae_em = np.nan, np.nan, np.nan
 
         results.append({
             'Regime': regime_name, 'Seed': seed, 'dt': dt, 'mean_d': mean_d, 'D_base': D_base,
-            'Method': 'Standard', 'AUROC': roc_auc_std, 'AUPRC': pr_auc_std
+            'Method': 'Standard', 'AUROC': roc_auc_std, 'AUPRC': pr_auc_std, 'MAE': mae_std
         })
         results.append({
             'Regime': regime_name, 'Seed': seed, 'dt': dt, 'mean_d': mean_d, 'D_base': D_base,
-            'Method': 'EM', 'AUROC': roc_auc_em, 'AUPRC': pr_auc_em
+            'Method': 'EM', 'AUROC': roc_auc_em, 'AUPRC': pr_auc_em, 'MAE': mae_em
         })
         
         return results
@@ -115,7 +120,7 @@ def main():
     dt_vals = [0.2, 0.5, 0.8, 1.1, 1.4, 1.7]
     seeds = list(range(1, 11))  # 10 seeds
     
-    out_file = "data/publication_likelihood_benchmark.csv"
+    out_file = "data/publication_likelihood_benchmark_mae.csv"
     os.makedirs("data", exist_ok=True)
     
     completed_jobs = set()

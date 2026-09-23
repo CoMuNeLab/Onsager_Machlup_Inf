@@ -141,6 +141,13 @@ What we obtain from this procedure is an ensemble of configurations for the para
 %% Syntetic network on nonlinear SDE model
 As a primary application, we start from a nonlinear SDE model with sigmoidal activation functions -- capturing saturation, oscillatory, and noise-driven regimes -- and then we perform inference on synthetic networks. We show that the ensemble approach provides a more reliable reconstruction of the true network topology than single-point estimation, in particular for the prediction of gene knockout effects. We also demonstrate how incorporating sparse prior knowledge about network connectivity and known regulatory interactions improves inference in data-limited regimes.
 
+\begin{figure*}
+    \centering
+    \includegraphics[width=\textwidth]{../papers_figures/Fig1.png}
+    \caption{\textbf{Schematic overview of the proposed Bayesian inference framework.} The framework consists of three main components: (i) a mechanistic SDE model that captures the dynamics of the system, (ii) a likelihood function based on the Onsager-Machlup path probability formalism that rigorously defines the probability of observing a given trajectory, and (iii) a prior distribution that encodes relevant constraints based on biological knowledge. The inference process is performed using a node-wise block-coordinate Metropolis-Hastings sampling algorithm, which exploits the factorization of the path probability to make posterior sampling tractable, while maintaining ergodicity guarantees. The output of the inference process is an ensemble of network configurations, each weighted by its posterior probability, which can be analyzed to extract probabilistic measures on the system under analysis.}
+    \label{fig:framework}
+\end{figure*}
+
 \section{Bayesian Network Inference}
 
 %Paragraph 1: The Inverse Problem. Formulate network reconstruction as an inverse problem. Introduce Bayes' Theorem.
@@ -324,10 +331,12 @@ The results indicated a strong tendency for standard baselines to overfit the hi
 
 \begin{figure*}
     \centering
-    \includegraphics[width=\textwidth]{../papers_figures/Fig3.png}
+    \includegraphics[width=\textwidth]{../papers_figures/Fig2.png}
     \caption{\textbf{Constraining kinetic parameters to be global prevents overfitting and enables accurate network inference.} When the kinetic parameters $\theta = \{\gamma, V, D\}$ are allowed to vary freely for each node, the inference engine collapses the network topology to a trivial empty graph (left). In contrast, when the kinetic parameters are constrained to be global and shared across all nodes, the inference engine successfully recovers a rich and biologically plausible network topology (right). This demonstrates that constraining the kinetic parameters is crucial for preventing overfitting and ensuring that the inferred network reflects genuine interactions rather than localized parametric flexibility.}
     \label{fig:degeneracy}
 \end{figure*}
+
+
 
 \subsection{Bayesian Topology Inference is Robust to SDE Discretization Errors}
 
@@ -362,6 +371,13 @@ This can be particularly useful in the context of gene regulatory networks, wher
 Standard network inference methods typically yield a single, optimal point-estimate of the network topology. However, biological systems are heavily under-determined, meaning many distinct network structures can explain the observed data equally well. To address this, we approach the inference problem probabilistically using Markov Chain Monte Carlo (MCMC) sampling. Rather than forcing binary present/absent edge decisions, the MCMC produces a posterior distribution of viable network topologies. From this ensemble, we can compute marginal edge probabilities and expected interaction weights, effectively shifting the paradigm from finding the ``one true network'' to capturing and quantifying the full structural uncertainty inherent in the data.
 
 Evaluating this probabilistic output requires a departure from traditional binary classification metrics. To assess topological accuracy, standard metrics such as the Area Under the Receiver Operating Characteristic (AUROC) and Precision-Recall Curve (AUPRC) were adapted by utilizing the marginal edge probabilities as natural confidence scores. However, evaluating the inferred regulatory weights presents a deeper challenge; due to parameter non-identifiability in non-linear dynamical systems, absolute parameter values often diverge even when the dynamic behavior is perfectly captured. Therefore, we evaluated the quantitative reconstruction by focusing on the relative hierarchy of regulatory interactions. We employed Rank-Biased Overlap (RBO) and Spearman Rank correlation to compare the expected inferred weights against the true network, emphasizing that predicting the correct hierarchy of top master-regulators is biologically more relevant than exact parameter matching. (A comprehensive formulation of these metrics, alongside distributional evaluations using the Wasserstein distance, is detailed in the Supplementary Materials).
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=\textwidth]{../papers_figures/Fig3.png}
+    \caption{\textbf{Constraining kinetic parameters to be global prevents overfitting and enables accurate network inference.} When the kinetic parameters $\theta = \{\gamma, V, D\}$ are allowed to vary freely for each node, the inference engine collapses the network topology to a trivial empty graph (left). In contrast, when the kinetic parameters are constrained to be global and shared across all nodes, the inference engine successfully recovers a rich and biologically plausible network topology (right). This demonstrates that constraining the kinetic parameters is crucial for preventing overfitting and ensuring that the inferred network reflects genuine interactions rather than localized parametric flexibility.}
+    \label{fig:degeneracy}
+\end{figure*}
 
 \paragraph{Impact on perturbation analysis\\}
 

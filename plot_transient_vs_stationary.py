@@ -13,13 +13,13 @@ def label_window(row):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate AUPRC Transient vs Stationary bar plots.")
-    parser.add_argument('--input', type=str, default='results/grid_results/performance_metrics_extended.csv', help='Path to the extended performance metrics CSV.')
+    parser.add_argument('--input', type=str, default='results/grid_results/performance_metrics_extended_raw.csv', help='Path to the extended performance metrics CSV.')
     parser.add_argument('--out_dir', type=str, default='images/detailed', help='Directory to save output plots.')
     parser.add_argument('--fixed_M', type=int, default=500, help='Fixed M_pairs to filter by.')
     parser.add_argument('--fixed_dt', type=float, default=0.05, help='Fixed dt_meas to filter by.')
     args = parser.parse_args()
 
-    sns.set_theme(style='whitegrid', context='talk')
+    sns.set_theme(style="ticks", context='paper')
     os.makedirs(args.out_dir, exist_ok=True)
 
     if not os.path.exists(args.input):
@@ -47,10 +47,18 @@ def main():
         return
 
     # Plot AUPRC: Transient vs Stationary
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.barplot(data=df_subset, x='N', y='AUPRC', hue='Regime', palette='Set2', ax=ax)
-    ax.set_title(f'AUPRC: Transient vs Stationary (Fixed M={args.fixed_M}, dt={args.fixed_dt})')
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    fig, ax = plt.subplots(figsize=(7, 9))
+    fontsize=21
+    
+    # By using the raw data, sns.barplot will automatically compute and plot error bars (95% CI).
+    # We add capsize for better visibility of the error bars.
+    sns.barplot(data=df_subset, x='N', y='AUPRC', hue='Regime', palette='Set2', capsize=0.1, err_kws={'linewidth': 1.5, 'color': 'black'}, ax=ax)
+    
+    #ax.set_title(f'AUPRC: Transient vs Stationary (Fixed M={args.fixed_M}, dt={args.fixed_dt})')
+    ax.set_xlabel('Number of Nodes (N)', fontsize=fontsize)
+    ax.set_ylabel('AUPRC', fontsize=fontsize)
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
+    plt.legend(loc='upper right', fontsize=fontsize)
     
     out_path = os.path.join(args.out_dir, 'transient_vs_stationary_AUPRC_fixed.png')
     plt.savefig(out_path, dpi=300, bbox_inches='tight')
