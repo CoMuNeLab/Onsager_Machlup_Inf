@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.optimize as opt
+import graph_tool as gt
 from gene_expr import GeneExprBlockState
 
 def optimize_global_theta(state):
@@ -31,21 +32,28 @@ def optimize_global_theta(state):
         state.theta.set_2d_array(arr)
         return 0.0
 
-def run_burn_in(state, n_burnin=50, theta_mode="global"):
+def run_burn_in(state, n_burnin=50, theta_mode="global", beta=1.0, seed=None):
+    if seed is not None:
+        np.random.seed(seed)
+    gt.seed_rng(int(seed))
     print(f"\n--- PHASE 1: Equilibration ({n_burnin} sweeps) ---")
     for sweep in range(1, n_burnin + 1):
         if theta_mode == "local":
-            dS_topo, nmoves = state.mcmc_sweep(niter=10, theta=10)
+            dS_topo, nmoves = state.mcmc_sweep(niter=10, theta=10, beta=beta)
             dS_param = 0.0
         else:
-            dS_topo, nmoves = state.mcmc_sweep(niter=10, theta=0)
+            dS_topo, nmoves = state.mcmc_sweep(niter=10, theta=0, beta=beta)
             dS_param = optimize_global_theta(state) if theta_mode == "global" else 0.0
             
         if sweep % 10 == 0 or sweep == 1:
             print(f"Burn-in Sweep {sweep:2d}/{n_burnin}: Entropy = {state.entropy():8.4f} (dS_topo = {dS_topo:8.4f}, dS_param = {-dS_param:8.4f}, moves = {nmoves:4d})")
     return state
 
-def run_posterior_sampling(state, N, n_samples=100, delta_k=1, theta_mode="global"):
+def run_posterior_sampling(state, N, n_samples=100, delta_k=1, theta_mode="global", beta=1.0, seed=None):
+    
+    if seed is not None:
+        np.random.seed(seed)
+    gt.seed_rng(int(seed))
     print(f"\n--- PHASE 2: Sampling ({n_samples} samples, thinning {delta_k}) ---")
     W_ensemble = []
     theta_ensemble = []
@@ -53,10 +61,10 @@ def run_posterior_sampling(state, N, n_samples=100, delta_k=1, theta_mode="globa
     for sample_idx in range(1, n_samples + 1):
         for _ in range(delta_k):
             if theta_mode == "local":
-                dS_topo, nmoves = state.mcmc_sweep(niter=10, theta=10)
+                dS_topo, nmoves = state.mcmc_sweep(niter=10, theta=10, beta=beta)
                 dS_param = 0.0
             else:
-                dS_topo, nmoves = state.mcmc_sweep(niter=10, theta=0)
+                dS_topo, nmoves = state.mcmc_sweep(niter=10, theta=0, beta=beta)
                 dS_param = optimize_global_theta(state) if theta_mode == "global" else 0.0
             
         S_cur = state.entropy()

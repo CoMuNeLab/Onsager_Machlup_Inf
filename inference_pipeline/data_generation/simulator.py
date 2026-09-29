@@ -8,9 +8,16 @@ def simulate_realistic_pairs(W, M=200, dt_sim=0.01, dt_sample=0.5, dt_meas=0.05,
     N = W.shape[0]
     np.random.seed(seed)
     
-    # Heterogeneous parameters
-    d = np.ones(N) * mean_d  # Homogeneous parameters
-    V = np.ones(N) * mean_V  # Homogeneous parameters
+    # Heterogeneous parameters on a log scale; homogeneous if std is 0
+    if std_d == 0:
+        d = np.ones(N) * mean_d
+    else:
+        d = np.random.lognormal(mean=np.log(mean_d), sigma=std_d, size=N)
+
+    if std_V == 0:
+        V = np.ones(N) * mean_V
+    else:
+        V = np.random.lognormal(mean=np.log(mean_V), sigma=std_V, size=N)
     
     t_start, t_end = t_window
     sample_times = np.arange(t_start, t_end + 1e-9, dt_sample)

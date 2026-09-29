@@ -12,12 +12,12 @@ from inference_pipeline.data_generation.network_generator import generate_scale_
 from inference_pipeline.data_generation.simulator import simulate_realistic_pairs
 from inference_pipeline.inference.mcmc_engine import run_burn_in, run_posterior_sampling, compute_ensemble_stats
 from inference_pipeline.inference.metrics import compute_reconstruction_metrics
+from analysis.reconstruction_metrics import evaluate_topology, evaluate_weights
 from gene_expr import GeneExprBlockState
 
-def run_single_config(dt_meas, M_pairs, t_window, N, trial_id):
+def run_single_config(dt_meas, M_pairs, t_window, N, m, trial_id):
     try:
         # Fixed hyperparameters
-        m = 1
         # The topology seed depends on the trial so we get a statistical ensemble
         seed_network = 42 + trial_id
         dt_sim = 0.01
@@ -27,7 +27,7 @@ def run_single_config(dt_meas, M_pairs, t_window, N, trial_id):
         D_base = 0.02
         
         # Output directory
-        config_name = f"N_{N}_M_{M_pairs}_dt_{dt_meas}_twnd_{t_window[0]}_{t_window[1]}_trial_{trial_id}"
+        config_name = f"N_{N}_m_{m}_M_{M_pairs}_dt_{dt_meas}_twnd_{t_window[0]}_{t_window[1]}_trial_{trial_id}"
         output_dir = os.path.join("results", "grid_results", config_name)
         os.makedirs(output_dir, exist_ok=True)
         npz_path = os.path.join(output_dir, "results.npz")
@@ -81,6 +81,8 @@ def run_single_config(dt_meas, M_pairs, t_window, N, trial_id):
         
         # 4. Compute Metrics
         metrics = compute_reconstruction_metrics(W_true, W_ensemble[-1])
+        top_metrics = evaluate_topology(W_true, W_ensemble, threshold=0.0, weighted=False)
+        weight_metrics = evaluate_weights(W_true, W_ensemble, threshold=0.0)
         
         # Return summary for CSV
         row = {
@@ -90,7 +92,15 @@ def run_single_config(dt_meas, M_pairs, t_window, N, trial_id):
             "t_window_start": t_window[0],
             "t_window_end": t_window[1],
             "N": N,
+            "m": m,
             **metrics,
+            "AUROC": top_metrics.get("auroc", np.nan),
+            "AUPRC": top_metrics.get("auprc", np.nan),
+            "MSE": weight_metrics.get("mse", np.nan),
+            "Pearson": weight_metrics.get("pearson", np.nan),
+            "Spearman": weight_metrics.get("spearman", np.nan),
+            "RBO": weight_metrics.get("rbo", np.nan),
+            "Wasserstein": weight_metrics.get("wasserstein", np.nan),
             "status": "success",
             "error": ""
         }
@@ -106,6 +116,7 @@ def run_single_config(dt_meas, M_pairs, t_window, N, trial_id):
             "t_window_start": t_window[0],
             "t_window_end": t_window[1],
             "N": N,
+            "m": m,
             "status": "failed",
             "error": str(e)
         }
@@ -121,6 +132,7 @@ if __name__ == "__main__":
     grid_M_pairs = [100,200,500,1000]
     grid_t_window = [(0.0, 3.0), (10.0, 15.0)]
     grid_N = [10, 20, 50, 100]
+    grid_m = [1, 2, 3]
     grid_trials = list(range(args.trials))
     
     if args.dry_run:
@@ -129,8 +141,9 @@ if __name__ == "__main__":
         grid_M_pairs = [100]
         grid_t_window = [(0.0, 3.0)]
         grid_N = [10, 20]
+        grid_m = [1]
         
-    all_configs = list(itertools.product(grid_dt_meas, grid_M_pairs, grid_t_window, grid_N, grid_trials))
+    all_configs = list(itertools.product(grid_dt_meas, grid_M_pairs, grid_t_window, grid_N, grid_m, grid_trials))
     total_configs = len(all_configs)
     print(f"Total configurations to run: {total_configs} (including {args.trials} trial(s) per setup)")
     
@@ -139,8 +152,9 @@ if __name__ == "__main__":
     csv_file = os.path.join("results", "grid_results", "performance_metrics.csv")
     
     fieldnames = [
-        "trial", "dt_meas", "M_pairs", "t_window_start", "t_window_end", "N",
+        "trial", "dt_meas", "M_pairs", "t_window_start", "t_window_end", "N", "m",
         "TP", "FP", "FN", "TN", "TPR (Recall)", "FPR", "Precision", "F1-Score", "SHD",
+        "AUROC", "AUPRC", "MSE", "Pearson", "Spearman", "RBO", "Wasserstein",
         "status", "error"
     ]
     
@@ -154,9 +168,9 @@ if __name__ == "__main__":
     
     try:
         for idx, config in enumerate(all_configs):
-            dt_meas, M_pairs, t_window, N, trial_id = config
+            dt_meas, M_pairs, t_window, N, m, trial_id = config
             pct = (idx / total_configs) * 100
-            print(f"\n[{idx+1}/{total_configs}] ({pct:.1f}%) Processing N={N}, M={M_pairs}, dt={dt_meas}, twnd={t_window}, trial={trial_id} ...")
+            print(f"\n[{idx+1}/{total_configs}] ({pct:.1f}%) Processing N={N}, m={m}, M={M_pairs}, dt={dt_meas}, twnd={t_window}, trial={trial_id} ...")
             
             status, result_row = run_single_config(*config)
             

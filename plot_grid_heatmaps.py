@@ -41,13 +41,31 @@ def main():
             
         # Parse directory name: N_20_M_500_dt_0.05_twnd_0.0_3.0_trial_0
         parts = dirname.split("_")
+        params = {"N": None, "m": 1, "p": None, "M": None, "dt": None, "twnd_start": None, "twnd_end": None, "trial": None}
+        
         try:
-            N = int(parts[1])
-            M = int(parts[3])
-            dt = float(parts[5])
-            twnd_start = float(parts[7])
-            twnd_end = float(parts[8])
-            trial = int(parts[10])
+            for i in range(len(parts)):
+                if parts[i] == "N": params["N"] = int(parts[i+1])
+                elif parts[i] == "m": params["m"] = int(parts[i+1])
+                elif parts[i] == "p": params["p"] = float(parts[i+1])
+                elif parts[i] == "M": params["M"] = int(parts[i+1])
+                elif parts[i] == "dt": params["dt"] = float(parts[i+1])
+                elif parts[i] == "twnd": 
+                    params["twnd_start"] = float(parts[i+1])
+                    params["twnd_end"] = float(parts[i+2])
+                elif parts[i] == "trial": params["trial"] = int(parts[i+1])
+                
+            N = params["N"]
+            m = params["m"]
+            p = params["p"]
+            M = params["M"]
+            dt = params["dt"]
+            twnd_start = params["twnd_start"]
+            twnd_end = params["twnd_end"]
+            trial = params["trial"]
+            
+            if N is None or M is None or dt is None or twnd_start is None:
+                continue
         except (IndexError, ValueError):
             continue
             
@@ -68,6 +86,7 @@ def main():
         
         records.append({
             "N": N,
+            "m": m,
             "M_pairs": M,
             "dt_meas": dt,
             "Regime": regime,
@@ -84,7 +103,7 @@ def main():
         
     # Aggregate over trials
     df.to_csv(os.path.join(results_dir, "performance_metrics_extended_raw.csv"), index=False)
-    df_agg = df.groupby(["N", "M_pairs", "dt_meas", "Regime"]).mean().reset_index()
+    df_agg = df.groupby(["N", "m", "M_pairs", "dt_meas", "Regime"]).mean().reset_index()
     df_agg.to_csv(os.path.join(results_dir, "performance_metrics_extended.csv"), index=False)
     
     # Create Output Directory
@@ -161,27 +180,28 @@ def main():
         
     # Generate a plot for each combination of N and Regime
     for n_val in df_agg["N"].unique():
+        for m_val in df_agg["m"].unique():
         for reg in df_agg["Regime"].unique():
-            subset = df_agg[(df_agg["N"] == n_val) & (df_agg["Regime"] == reg)]
+            subset = df_agg[(df_agg["N"] == n_val) & (df_agg["m"] == m_val) & (df_agg["Regime"] == reg)]
             if len(subset) == 0:
                 continue
             
             plot_heatmap(
                 subset, "AUPRC", 
-                f"AUPRC (N={n_val}, {reg} Regime)",
-                os.path.join(out_dir, f"heatmap_AUPRC_N{n_val}_{reg}.png"),
+                f"AUPRC (N={n_val}, m={m_val}, {reg} Regime)",
+                os.path.join(out_dir, f"heatmap_AUPRC_N{n_val}_m{m_val}_{reg}.png"),
                 "magma", vmin=0.5, vmax=1.0
             )
             plot_heatmap(
                 subset, "AUROC", 
-                f"AUROC (N={n_val}, {reg} Regime)",
-                os.path.join(out_dir, f"heatmap_AUROC_N{n_val}_{reg}.png"),
+                f"AUROC (N={n_val}, m={m_val}, {reg} Regime)",
+                os.path.join(out_dir, f"heatmap_AUROC_N{n_val}_m{m_val}_{reg}.png"),
                 "viridis", vmin=0.5, vmax=1.0
             )
             plot_heatmap(
                 subset, "Weighted_MAE", 
-                f"Weighted MAE (N={n_val}, {reg} Regime)",
-                os.path.join(out_dir, f"heatmap_MAE_N{n_val}_{reg}.png"),
+                f"Weighted MAE (N={n_val}, m={m_val}, {reg} Regime)",
+                os.path.join(out_dir, f"heatmap_MAE_N{n_val}_m{m_val}_{reg}.png"),
                 "coolwarm", vmin=None, vmax=None
             )
             
