@@ -229,7 +229,19 @@ To ensure a fair and reproducible benchmarking study against standard inference 
     \item \textbf{Granger Causality:} Executed using a classical Vector Autoregression (VAR) model. The optimal maximum lag was selected using the Akaike Information Criterion (AIC). F-tests were performed to determine the statistical significance of predictive causality, and the resulting p-values ($- \log_{10}(p)$) were used as confidence scores for the AUPRC evaluation.
 \end{itemize}
 
-$\tau \frac{dx_i}{dt} = -x_i + (1-x_i)\sigma\left(\sum_{j} W_{ij}x_j + I\right)$
+\section{Neural Network Inference and Perturbation Benchmark}
+
+To test the robustness of our inference framework against model mismatch, we simulated time-series data using the continuous Wilson-Cowan neural rate model:
+
+\begin{equation}
+    \frac{dx_i}{dt} = -\frac{x_i}{\tau} + (1 - x_i)\sigma\left(\sum_{j=1}^{N} W_{ij} x_j + I_i\right) + \eta_i(t)
+\end{equation}
+
+where $\sigma(\cdot)$ is the standard sigmoid function, $\tau=2.0$ represents the decay time constant, $I_i=-1.5$ is the external baseline input, and $\eta_i(t)$ represents additive Gaussian noise with standard deviation $0.05$. We simulated $N=10$ nodes connected by an Erd\"os-R\'enyi topology ($p=0.15$) with mixed excitatory and inhibitory connections ($W_{ij} \sim U(0.5, 1.5)$ with random signs).
+
+We generated $30$ transient trajectories of $200$ integration steps ($\Delta t = 0.01$), subsampled by a factor of 10 for inference. Despite the inference engine explicitly modeling a discrete-state GRN, it successfully mapped the non-linear continuous dynamics into its internal representation, accurately reconstructing both the existence and expected magnitudes of the true weights.
+
+For the perturbation analysis, we applied an \textit{in silico} over-expression to a single node ($\Delta I_{ko} = +5.0$) and calculated the resulting steady-state shift across the network. Predictions from the inferred probabilistic ensemble strongly correlated with the true biological shifts ($\rho_{Spearman} > 0.90$), accurately capturing the uncertainty of highly sensitive downstream responses where the single MAP point-estimate completely failed to generalize.
 
 \bibliographystyle{oup-abbrvnat}
 \bibliography{reference}
