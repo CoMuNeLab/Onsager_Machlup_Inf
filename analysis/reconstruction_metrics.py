@@ -42,7 +42,16 @@ def evaluate_topology(W_true, W_ensemble, threshold=0.0, weighted=False):
     auroc = roc_auc_score(y_true, y_scores, sample_weight=sample_weight)
     auprc = average_precision_score(y_true, y_scores, sample_weight=sample_weight)
     
-    return {"auroc": auroc, "auprc": auprc}
+    baseline = np.mean(y_true)
+    auprc_ratio = auprc / baseline if baseline > 0 else np.nan
+    auprc_norm = (auprc - baseline) / (1.0 - baseline) if baseline < 1 else np.nan
+    
+    return {
+        "auroc": auroc, 
+        "auprc": auprc,
+        "auprc_ratio": auprc_ratio,
+        "auprc_norm": auprc_norm
+    }
 
 def calculate_rbo(l1, l2, p=0.9):
     """

@@ -35,7 +35,7 @@ def optimize_global_theta(state):
 def run_burn_in(state, n_burnin=50, theta_mode="global", beta=1.0, seed=None):
     if seed is not None:
         np.random.seed(seed)
-    gt.seed_rng(int(seed))
+        gt.seed_rng(int(seed))
     print(f"\n--- PHASE 1: Equilibration ({n_burnin} sweeps) ---")
     for sweep in range(1, n_burnin + 1):
         if theta_mode == "local":
@@ -53,7 +53,7 @@ def run_posterior_sampling(state, N, n_samples=100, delta_k=1, theta_mode="globa
     
     if seed is not None:
         np.random.seed(seed)
-    gt.seed_rng(int(seed))
+        gt.seed_rng(int(seed))
     print(f"\n--- PHASE 2: Sampling ({n_samples} samples, thinning {delta_k}) ---")
     W_ensemble = []
     theta_ensemble = []

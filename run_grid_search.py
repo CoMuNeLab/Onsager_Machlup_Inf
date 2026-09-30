@@ -96,6 +96,8 @@ def run_single_config(dt_meas, M_pairs, t_window, N, m, trial_id):
             **metrics,
             "AUROC": top_metrics.get("auroc", np.nan),
             "AUPRC": top_metrics.get("auprc", np.nan),
+            "AUPRC_Ratio": top_metrics.get("auprc_ratio", np.nan),
+            "AUPRC_Norm": top_metrics.get("auprc_norm", np.nan),
             "MSE": weight_metrics.get("mse", np.nan),
             "Pearson": weight_metrics.get("pearson", np.nan),
             "Spearman": weight_metrics.get("spearman", np.nan),
