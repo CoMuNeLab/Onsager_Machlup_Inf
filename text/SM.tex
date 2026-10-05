@@ -213,4 +213,14 @@ As illustrated in Fig.~\ref{fig:grid_search}, the results systematically confirm
 \bibliographystyle{oup-abbrvnat}
 \bibliography{reference}
 
+
+\section{Erd\H{o}s-R\'enyi Grid Search Benchmark}
+
+To ensure that the scalability and inference accuracy of our Bayesian framework were not strictly dependent on the presence of topological hubs---which define the primary Scale-Free baseline utilized in the main text---we replicated the comprehensive grid search on homogeneously random Erd\H{o}s-R\'enyi (ER) networks. 
+
+Across over 2,000 independent experiments, we observed a fundamental structural trade-off. At smaller network sizes ($N \le 20$), the ER topology actually enabled better quantitative parameter inference. Specifically, the Spearman rank correlation of the expected inferred weights averaged 0.86 at $N=10$, compared to 0.76 for Scale-Free networks. This occurs because ER networks lack dominating hubs; the dynamical variance is distributed more evenly across all nodes, preventing the ``shadowing'' effect where a master regulator overwhelmingly dictates the system's dynamics, thereby allowing the algorithm to more easily pinpoint the exact weight of individual minor edges.
+
+However, as the network dimensionality scales ($N 	o 100$), the topological inference performance on ER networks drops significantly faster than on Scale-Free networks. The AUPRC Ratio (fold-change over random baseline) plummeted from 8.6 at $N=10$ to 2.2 at $N=100$. Because ER networks are purely random, they lack any macroscopic structural anchors. In high dimensions, the true sparse connections become exceedingly difficult to untangle from the homogeneous background noise. This stands in contrast to Scale-Free networks, where the presence of hubs acts as a dynamical anchor, enabling the algorithm to maintain a higher relative topological accuracy even in high-dimensional spaces. 
+
+These results confirm that while the framework is highly precise in resolving local, homogenous micro-circuits (such as the ER topologies often used in computational neuroscience benchmarks like the Wilson-Cowan rate model), real-world macroscopic complex systems governed by Scale-Free principles provide the necessary structural anchors that allow Bayesian inference to robustly scale to large dimensions.
 \end{document}
