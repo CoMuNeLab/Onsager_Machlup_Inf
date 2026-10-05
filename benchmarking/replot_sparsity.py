@@ -19,32 +19,30 @@ def replot():
     sns.set_theme(style="ticks", context="paper", font_scale=1.5)
     fontsize = 30
     
-    fig, axes = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+    fig, axes = plt.subplots(2, 1, figsize=(6, 7))
     
-    # 1. MAE Plot
-    ax_mae = axes[0]
-    data_mae = [results['Global']['mae'], results['Local']['mae']]
-    sns.boxplot(data=data_mae, ax=ax_mae, palette=['#4C72B0', '#DD8452'], showfliers=False, width=0.5, boxprops={'alpha': 0.6}, linewidth=3, medianprops={'color': 'black', 'linewidth': 2})
-    sns.stripplot(data=data_mae, ax=ax_mae, color='black', size=12, jitter=True, alpha=0.8)
-    ax_mae.set_xticks([0, 1])
-    ax_mae.set_xticklabels(['Global', 'Local'], rotation=0)
-    ax_mae.set_ylabel('MAE', fontsize=fontsize)
-    ax_mae.tick_params(axis='both', which='major', labelsize=fontsize)
-    #ax_mae.set_title('Inference Error (Weights)', pad=15)
-    sns.despine(ax=ax_mae)
+    # 1. Spearman Plot
+    ax_spearman = axes[0]
+    data_spearman = [results['Global']['spearman'], results['Local']['spearman']]
+    sns.violinplot(data=data_spearman, ax=ax_spearman, palette=['#4C72B0', '#DD8452'], inner=None, linewidth=2)
+    sns.stripplot(data=data_spearman, ax=ax_spearman, color='black', size=10, jitter=True, alpha=0.7)
+    ax_spearman.set_xticks([0, 1])
+    ax_spearman.set_xticklabels(['Global', 'Local'], rotation=0)
+    ax_spearman.set_ylabel('Spearman Correlation', fontsize=fontsize)
+    ax_spearman.tick_params(axis='both', which='major', labelsize=fontsize)
+    sns.despine(ax=ax_spearman)
     
     # 2. AUPRC Plot
     ax_pr = axes[1]
     data_pr = [results['Global']['auprc'], results['Local']['auprc']]
-    
-    sns.boxplot(data=data_pr, ax=ax_pr, palette=['#4C72B0', '#DD8452'], showfliers=False, width=0.5, boxprops={'alpha': 0.6}, linewidth=3, medianprops={'color': 'black', 'linewidth': 2})
-    sns.stripplot(data=data_pr, ax=ax_pr, color='black', size=12, jitter=True, alpha=0.8)
+    sns.violinplot(data=data_pr, ax=ax_pr, palette=['#4C72B0', '#DD8452'], inner=None, linewidth=2)
+    sns.stripplot(data=data_pr, ax=ax_pr, color='black', size=10, jitter=True, alpha=0.7)
     
     ax_pr.set_xticks([0, 1])
     ax_pr.set_xticklabels(['Global', 'Local'], rotation=0)
     ax_pr.set_ylabel('AUPRC', fontsize=fontsize)
     ax_pr.tick_params(axis='both', which='major', labelsize=fontsize)
-    ax_pr.set_ylim(0.5, 1.05)
+    ax_pr.set_ylim(0.4, 1.05)
     sns.despine(ax=ax_pr)
     
     plt.tight_layout()

@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import roc_curve, precision_recall_curve, auc
+from scipy.stats import spearmanr
 import graph_tool.all as gt
 
 # Add project root to path
@@ -31,18 +32,22 @@ def calc_mae(W_true, W_inferred, N):
     mask = ~np.eye(N, dtype=bool)
     return np.mean(np.abs(W_true[mask] - W_inferred[mask]))
 
+def calc_spearman(W_true, W_inferred, N):
+    mask = ~np.eye(N, dtype=bool)
+    return spearmanr(W_true[mask], W_inferred[mask])[0]
+
 def run_experiment():
     np.random.seed(42)
     N = 10
     M_train = 500  # Rich dataset
     dt_sim = 0.005
-    dt_sample = 0.5
-    dt_meas = 0.5
-    n_reps = 5
+    dt_sample = 0.05
+    dt_meas = 0.05
+    n_reps = 10
     
     results = {
-        'Global': {'edges': [], 'auprc': [], 'mae': []},
-        'Local': {'edges': [], 'auprc': [], 'mae': []}
+        'Global': {'edges': [], 'auprc': [], 'mae': [], 'spearman': []},
+        'Local': {'edges': [], 'auprc': [], 'mae': [], 'spearman': []}
     }
     
     for rep in range(n_reps):
@@ -84,8 +89,10 @@ def run_experiment():
         ep_g, wm_g, _ = compute_ensemble_stats(W_ensemble_g)
         pr_g = calc_auprc(W_true_binary, ep_g * np.abs(wm_g), N)
         mae_g = calc_mae(W_true, ep_g * wm_g, N)
+        spearman_g = calc_spearman(W_true, ep_g * wm_g, N)
         results['Global']['auprc'].append(pr_g)
         results['Global']['mae'].append(mae_g)
+        results['Global']['spearman'].append(spearman_g)
         
         # --- LOCAL MODE ---
         print("\n--- Running LOCAL Mode ---")
@@ -99,8 +106,10 @@ def run_experiment():
         ep_l, wm_l, _ = compute_ensemble_stats(W_ensemble_l)
         pr_l = calc_auprc(W_true_binary, ep_l * np.abs(wm_l), N)
         mae_l = calc_mae(W_true, ep_l * wm_l, N)
+        spearman_l = calc_spearman(W_true, ep_l * wm_l, N)
         results['Local']['auprc'].append(pr_l)
         results['Local']['mae'].append(mae_l)
+        results['Local']['spearman'].append(spearman_l)
         
     # Save raw results
     import pickle
@@ -116,16 +125,16 @@ def run_experiment():
     
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
     
-    # 1. MAE Plot (Boxplot + Swarmplot for 5 reps)
-    ax_mae = axes[0]
-    data_mae = [results['Global']['mae'], results['Local']['mae']]
-    sns.boxplot(data=data_mae, ax=ax_mae, palette=['#4C72B0', '#DD8452'], showfliers=False, width=0.5, boxprops={'alpha': 0.6})
-    sns.stripplot(data=data_mae, ax=ax_mae, color='black', size=8, jitter=True, alpha=0.8)
-    ax_mae.set_xticks([0, 1])
-    ax_mae.set_xticklabels(['Global\n(Shared)', 'Local\n(Node-Specific)'])
-    ax_mae.set_ylabel('Mean Absolute Error (MAE)')
-    ax_mae.set_title('Inference Error (Weights)', pad=15)
-    sns.despine(ax=ax_mae)
+    # 1. Spearman Plot (Boxplot + Swarmplot for 5 reps)
+    ax_spearman = axes[0]
+    data_spearman = [results['Global']['spearman'], results['Local']['spearman']]
+    sns.boxplot(data=data_spearman, ax=ax_spearman, palette=['#4C72B0', '#DD8452'], showfliers=False, width=0.5, boxprops={'alpha': 0.6})
+    sns.stripplot(data=data_spearman, ax=ax_spearman, color='black', size=8, jitter=True, alpha=0.8)
+    ax_spearman.set_xticks([0, 1])
+    ax_spearman.set_xticklabels(['Global\n(Shared)', 'Local\n(Node-Specific)'])
+    ax_spearman.set_ylabel('Spearman Correlation')
+    ax_spearman.set_title('Inference Accuracy (Weights)', pad=15)
+    sns.despine(ax=ax_spearman)
     
     # 2. AUPRC Plot (Boxplot + Swarmplot for 5 reps)
     ax_pr = axes[1]
