@@ -1,39 +1,136 @@
-![CancerEvo Project Overview](papers_figures/Fig_Github.png)
+![InferenceBio Project Overview](papers_figures/Fig_Github.png)
 
-# InferenceBio: Gene Regulatory Network Inference
+# Resolving Structural Uncertainty in Stochastic Dynamical Systems via Ensemble-Based Bayesian Inference
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
 
-## Project Overview
-InferenceBio is a computational framework dedicated to the reverse-engineering and topological inference of Gene Regulatory Networks (GRNs) from gene expression time-series data. 
+Codebase and reproduction workflows for the paper:
+> **"Resolving Structural Uncertainty in Stochastic Dynamical Systems via Ensemble-Based Bayesian Inference"**  
+> Francesco Zambelli, Vincenzo D'Andrea, Manlio De Domenico.
 
-The core of the project relies on Bayesian inference via Markov Chain Monte Carlo (MCMC). By modeling the dynamics of gene expression as a system of Stochastic Differential Equations (SDEs), the framework samples the posterior distribution of potential network topologies (using the `graph-tool` library). It handles both transient (post-perturbation) and stationary regimes, allowing for rigorous analysis of how measurement intervals ($dt_{meas}$), system size ($N$), and the number of independent samples ($M_{pairs}$) impact the structural recovery (F1-Score, SHD) of complex, scale-free networks.
+---
 
-## Folder Structure
+## 📌 Overview
+Complex biological and physical systems—from gene regulatory networks (GRNs) to neural circuits—often operate under severe structural uncertainty, observational noise, and finite-sampling regimes. This framework implements a nonparametric Bayesian formulation built on stochastic differential equations (SDEs) and Markov Chain Monte Carlo (MCMC) over random graph priors using `graph-tool`.
 
-- **`analysis/`**: Contains Python scripts dedicated to plotting and analyzing inference results. This includes tools for evaluating node-wise inference, plotting MCMC trajectories, and generating publication-ready figures.
-- **`data/`**: The central repository for datasets. This includes ground-truth biological benchmarks (e.g., DREAM4 challenge data) and generated synthetic datasets used for validating the inference pipeline.
-- **`entropy_exp/`**: Dedicated to experiments exploring the entropy landscape, description lengths, and potential phase transitions encountered during MCMC traversal of the network topologies.
-- **`gene_expr/`**: Contains the core `graph-tool` extension (`GeneExprBlockState`). This module implements the likelihood models and the stochastic differential equation physics governing the gene expression dynamics.
-- **`grid_results/`**: Output directory for massive hyperparameter sweeps. Contains `performance_metrics.csv` and individual `.npz` binary results for varying combinations of $N$, $M_{pairs}$, $dt_{meas}$, and sampling regimes.
-- **`grn_sim/`**: Modules responsible for the forward problem: generating realistic, scale-free ground-truth topologies and simulating their corresponding gene expression time-series data with noise.
-- **`images/`**: The centralized directory for all generated visual assets. This includes performance heatmaps, FacetGrids, network topology graphs, and analysis plots.
-- **`inference_pipeline/`**: The core structural pipeline for running Bayesian inference. It includes submodules for data generation, the MCMC engine (burn-in and posterior sampling), evaluation metrics, and export utilities for cross-language compatibility.
-- **`inference_python/` & `like_minimization/`**: Alternative or legacy inference modules exploring continuous optimization techniques (e.g., direct likelihood minimization) as opposed to discrete MCMC sampling.
-- **`reports/`**: Documentation, literature references, and generated summaries regarding the project's methodologies.
-- **`results/`**: General output folder for single-run or custom inferences, storing the resulting `.npz` files (containing ensemble topologies, edge probabilities, and parameter distributions).
+By sampling an **ensemble of plausible network topologies and kinetic parameters** rather than relying on single point-estimate reconstructions, this approach enables:
+1. **Accurate Structural Recovery:** Disentangling direct interactions from indirect correlations without ad-hoc regularization.
+2. **Robust Predictive Simulation:** Unbiased forecasting of out-of-sample steady states and knock-out/perturbation response.
+3. **Resilience to Model Mismatch:** Robust inference even when observing macroscopic rate dynamics (e.g., Wilson-Cowan neural populations).
 
-## Key Executables & Notebooks
-- **`run_grid_search.py`**: Orchestrates a massive parameter sweep across different network conditions. Features built-in checkpointing so it can be cleanly interrupted and resumed.
-- **`Grid_Search_Analysis.ipynb`**: A Jupyter Notebook designed to read `grid_results/performance_metrics.csv` and dynamically generate detailed `seaborn` FacetGrid plots to visualize the algorithmic performance.
-- **`Main_Pipeline.ipynb`**: An interactive notebook demonstrating the end-to-end inference process for a single network configuration, from data generation to Bayesian posterior sampling.
+---
 
-## Dependencies & Usage
-The project relies heavily on `graph-tool` for efficient network manipulation and state modeling.
+## 📂 Repository Structure
 
-1. **Environment:** Ensure your conda environment with `graph-tool` is active (`conda activate gt`).
-2. **Grid Search:** To launch or resume the grid search pipeline:
-   ```bash
-   python run_grid_search.py
-   ```
-3. **Analysis:** Open `Grid_Search_Analysis.ipynb` in Jupyter to visualize the latest results.
+```text
+├── Main_Pipeline.ipynb               # Interactive end-to-end demo (synthetic GRN simulation & MCMC inference)
+├── Grid_Search_Analysis.ipynb        # Comprehensive analysis of scale-free & Erdős-Rényi parameter sweeps
+├── Wilson_Cowan_Inference_Benchmark.ipynb # Benchmark on neural population dynamics under model mismatch (Fig. 4)
+│
+├── gene_expr/                         # High-performance C++ Bayesian MCMC engine (graph-tool extension)
+│   ├── GeneExprBlockState.hh
+│   ├── GeneExprBlockState.cc
+│   └── setup.py
+│
+├── inference_pipeline/                # Python core framework
+│   ├── sim/                          # SDE network dynamics simulation (Ornstein-Uhlenbeck, Euler-Maruyama)
+│   ├── inference/                    # MCMC orchestration, topology reconstruction metrics
+│   ├── prediction/                   # Out-of-sample simulation & perturbation response metrics
+│   └── io/                           # Serialization & binary array I/O
+│
+├── scripts/
+│   ├── benchmarking/                 # Reproduction scripts for paper benchmarks
+│   │   ├── run_publication_benchmark.py # SDE vs discrete/Taylor discretization benchmark (Fig. 3c)
+│   │   ├── plot_publication_figure.py   # Generates Fig. 3c
+│   │   ├── experiment_sparsity.py       # Global vs Local regularization mode benchmark (Fig. 3a)
+│   │   ├── replot_sparsity.py           # Generates Fig. 3a
+│   │   ├── experiment_overfitting.ipynb # Multi-method competitor benchmark (Fig. 3d)
+│   │   └── methods/                     # Benchmark competitors (Sparse ODE, Random Forest, Corr)
+│   ├── analysis/                     # Paper analysis & perturbation response scripts
+│   │   ├── plot_paper_perturbation.py   # Generates Fig. 3e, f (point-estimate vs ensemble perturbation)
+│   │   ├── plot_transient_vs_stationary.py # Generates Fig. 3b (regime comparison across scales)
+│   │   ├── reconstruction_metrics.py    # AUROC, AUPRC, SHD, Wasserstein, RBO evaluation
+│   │   ├── perturbation_metrics.py      # Response correlation, CI calibration, log-likelihood
+│   │   └── tests/                       # Unit tests for evaluation metrics and MCMC engine
+│   └── grid_search/                  # Massive scale-free and Erdős-Rényi parameter sweeps
+│       ├── run_grid_search.py           # Sweep runner for Scale-Free networks
+│       ├── run_grid_search_er.py        # Sweep runner for Erdős-Rényi networks
+│       └── compute_grid_metrics.py      # Aggregator for trial metrics into summary CSVs
+│
+├── results/                          # Curated experimental data & summaries
+│   ├── benchmarking/
+│   │   ├── discretization/           # Benchmark metrics for SDE continuous vs discrete models
+│   │   └── regularization/           # Local vs Global prior mode trial data
+│   ├── perturbation/                 # MCMC ensemble samples & ground-truth binary files
+│   ├── grid_results/                 # Scale-free parameter grid summary (performance_metrics.csv)
+│   └── grid_results_er/              # Erdős-Rényi parameter grid summary (performance_metrics.csv)
+│
+├── images/                           # Generated figures organized by analysis module
+│   ├── benchmarking/
+│   ├── analysis/
+│   └── grid_search/
+│
+└── papers_figures/                   # Final publication figures (PDF and high-res PNG)
+```
+
+---
+
+## 🚀 Installation & Requirements
+
+The project requires Python $\ge$ 3.10 and **[`graph-tool`](https://graph-tool.skewed.de/)**. The recommended installation is via `conda`:
+
+```bash
+# 1. Create and activate conda environment with graph-tool
+conda create -n gt -c conda-forge python=3.12 graph-tool scipy numpy pandas matplotlib seaborn scikit-learn
+conda activate gt
+
+# 2. Compile the C++ MCMC extension
+cd gene_expr
+python setup.py build_ext --inplace
+cd ..
+```
+
+---
+
+## 📊 Reproducing Paper Experiments and Figures
+
+| Figure | Description | Reproduction Script / Notebook |
+| :--- | :--- | :--- |
+| **Fig. 1** | Conceptual workflow & ensemble posterior representation | Diagram / [`papers_figures/Fig1.pdf`](papers_figures/Fig1.pdf) |
+| **Fig. 2** | Description length & MCMC entropy convergence | [`Main_Pipeline.ipynb`](Main_Pipeline.ipynb) |
+| **Fig. 3a** | Global vs. Local regularization / sparsity selection | `python scripts/benchmarking/replot_sparsity.py` |
+| **Fig. 3b** | Transient vs. Stationary regime comparison across scales | `python scripts/analysis/plot_transient_vs_stationary.py` |
+| **Fig. 3c** | SDE Exact vs. Continuous/Discrete likelihood discretization | `python scripts/benchmarking/plot_publication_figure.py` |
+| **Fig. 3d** | Competitor benchmark under overfitting & finite data | [`scripts/benchmarking/experiment_overfitting.ipynb`](scripts/benchmarking/experiment_overfitting.ipynb) |
+| **Fig. 3e, f** | Out-of-sample perturbation response & ensemble advantage | `python scripts/analysis/plot_paper_perturbation.py` |
+| **Fig. 4** | Model mismatch benchmark on Wilson-Cowan rate dynamics | [`Wilson_Cowan_Inference_Benchmark.ipynb`](Wilson_Cowan_Inference_Benchmark.ipynb) |
+| **Fig. S1** | Erdős-Rényi vs Scale-Free architecture comparison | [`Grid_Search_Analysis.ipynb`](Grid_Search_Analysis.ipynb) |
+
+---
+
+## 🧪 Running Tests
+
+Verify the installation and core metric pipelines:
+```bash
+python scripts/analysis/tests/test_evaluation_metrics.py
+python scripts/analysis/tests/test_gene_expr_inference.py
+```
+
+---
+
+## 📜 Citation
+If you use this codebase or method in your research, please cite:
+```bibtex
+@article{zambelli2026resolving,
+  title={Resolving Structural Uncertainty in Stochastic Dynamical Systems via Ensemble-Based Bayesian Inference},
+  author={Zambelli, Francesco and D'Andrea, Vincenzo and De Domenico, Manlio},
+  journal={arXiv preprint},
+  year={2026}
+}
+```
+
+---
+
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
