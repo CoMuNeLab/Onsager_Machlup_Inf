@@ -1,0 +1,165 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{xcolor}
+\usepackage{mdframed}
+\usepackage{hyperref}
+
+\newmdenv[
+  backgroundcolor=gray!10,
+  linecolor=gray!30,
+  linewidth=1pt,
+  innerleftmargin=10pt,
+  innerrightmargin=10pt,
+  innertopmargin=10pt,
+  innerbottommargin=10pt,
+  skipabove=10pt,
+  skipbelow=10pt
+]{reviewercomment}
+
+\newcommand{\reviewer}[1]{\vspace{1.5em}\noindent\textbf{\Large #1}\vspace{0.5em}}
+
+\title{Response to Reviewers}
+\author{Francesco Zambelli, Valeria D'Andrea, Manlio De Domenico}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\noindent Dear Editor of the \textit{Journal of the Royal Society Interface},
+
+\vspace{1em}
+We thank you and the reviewers for the constructive feedback on our manuscript, formerly titled \textit{"Bayesian inference of Gene Regulatory Networks from single cell transcriptomics data"}. We have carefully considered all the comments raised. In order to fully address the methodological and structural concerns, the manuscript has been almost entirely rewritten.
+
+The scope of the paper has been broadened. Recognizing that the mathematical framework is applicable beyond Gene Regulatory Networks, we have retitled the manuscript to: \textbf{"Resolving Structural Uncertainty in Stochastic Dynamical Systems via Ensemble-Based Bayesian Inference."} The paper now targets the inference of macroscopic complex systems (e.g., neural population dynamics, epidemiological networks, and generic biological pathways), demonstrating robustness against generic non-linear model mismatches.
+
+To address the scalability and mathematical constraints highlighted by the reviewers, the backend engine has been upgraded. We have integrated the algorithm with the \texttt{graph-tool} framework, implementing a hierarchical, non-parametric Minimum Description Length (MDL) prior. The combinatorial optimizations have been replaced with block-coordinate Metropolis-Hastings sweeps and continuous Nelder-Mead optimizations, resolving the weight restrictions and scalability issues. Furthermore, we have introduced benchmarking against four canonical inference paradigms and added a formal theoretical treatment of overfitting to justify our global parameter constraints.
+
+Below, we provide a detailed, point-by-point response addressing every concern raised by the reviewers.
+
+\vspace{1em}
+\hrulefill
+
+\reviewer{Reviewer 1}
+
+\begin{reviewercomment}
+1. The GRN interaction weights in matrix A are restricted to \{-1, 0, +1\}, ignoring heterogeneity in regulatory strength across gene pairs.
+\end{reviewercomment}
+
+We agree with this critique. The restriction of weights to discrete integer values has been removed in this revision. As detailed in Section 2.3, our framework now infers continuous, unbounded interaction weights ($\mathbf{W}$). To prevent infinite parameter complexity, we now employ a hierarchical Minimum Description Length (MDL) prior. This prior dynamically compresses the continuous weights into a finite, redundant vocabulary of latent, discrete categories ($z$). This penalizes model complexity via information theory without relying on arbitrary integer restrictions or computationally demanding shrinkage techniques.
+
+\begin{reviewercomment}
+2. The method has serious scalability issues: the individual regulator inference step samples over all possible regulator combinations, the ensemble step scales exponentially with network size, and grid search over parameters is computationally expensive. The authors must provide a systematic scalability evaluation.
+\end{reviewercomment}
+
+This was a limitation of the previous methodology, which we have now resolved. We have eliminated both the exhaustive combinatorial sampling and the disjoint grid search. As described in Section 2.3, the topological space is now sampled using the $NN_{Descent}$ algorithm within a Markov Chain Monte Carlo (MCMC) framework, achieving a subquadratic time complexity of $O(N \log^2 N)$. 
+The global continuous kinetic parameters ($\gamma, V, D$) are now optimized conditionally on the current topology via the deterministic Nelder-Mead algorithm. This unified, block-coordinate optimization scheme is scalable and efficiently navigates both structural and parametric spaces. We have also added performance scaling figures across data volumes.
+
+\begin{reviewercomment}
+3. The method assumes that kinetic parameters across all genes are identical, which is an overly simplified assumption. It is known that gene-specific rates can vary by orders of magnitude.
+\end{reviewercomment}
+
+We acknowledge that this assumption appears counter-intuitive, especially when modeled explicitly as a Gene Regulatory Network. To address this, we first pivoted the primary illustrative framing from highly heterogeneous GRNs to general macroscopic population networks, where intrinsic dynamics are physically closer.
+More importantly, we have added a dedicated section (Section 3.1: \textit{"The necessity of simple models: the problem of overfitting"}) to explicitly justify this design choice. We demonstrate via new benchmarking experiments (Fig. 3a) that when parameters are allowed to vary freely per node in sparse, noise-driven time-series, the optimizer absorbs the trajectory variance into local parameter tuning, causing the structural topology to completely collapse into an overfitted model. Globally constraining these parameters is therefore not an oversight, but a mathematical necessity: it strips the nodes of their individual parametric flexibility, forcing the inference engine to reconstruct the true underlying interaction topology $\mathbf{W}$ to explain heterogeneous fluctuations.
+
+\begin{reviewercomment}
+4. The prior choices of sparsity and enrichment of positive feedback loops are presented as biologically motivated but not rigorously evaluated or benchmarked. Performance will depend heavily on how well these priors match the ground-truth topology.
+\end{reviewercomment}
+
+We agree that the previous prior formulation was somewhat ad-hoc and heavily reliant on subjective biological assumptions. In the revised manuscript, we have abandoned the manual counting of feedback loops. Instead, as outlined in Section 2.3, we employ a non-parametric Stochastic Block Model (SBM) nested within the MDL framework. This prior adaptively penalizes structural complexity based on data compression principles. The SBM gracefully handles modular topologies and asymmetric directed interactions without requiring hand-crafted loop heuristics.
+
+\begin{reviewercomment}
+5. The empirical evaluation rests on a single synthetic test case with no real biological data and no comparison to existing methods.
+\end{reviewercomment}
+
+We have expanded the empirical validation of the framework. We added a comprehensive benchmarking section (Section 3.2), comparing our proposed Bayesian SDE approach against an extensive suite of nine distinct causal discovery and dynamical system paradigms: dynGENIE3 (non-parametric tree-based inference), Sparse ODE via Lasso and Elastic Net VAR (sparse parametric linear recovery), Granger Causality (classical statistical temporal prediction), PCMCI (information-theoretic causal discovery), Dynamic Bayesian Networks (discrete-time probabilistic structure learning), Gaussian Process ODEs (non-parametric Bayesian regression), PySINDy (modern data-driven sequential thresholding), and Neural ODEs (highly parameterized continuous-time deep learning). The results (Figure 3d) demonstrate our framework's ability to generalize out-of-sample and avoid the overfitting seen in the baselines. While overparameterized baselines like Neural ODEs fit the training data perfectly but collapsed out-of-sample, our method provided robust structural inference ($\text{AUPRC} = 0.83 \pm 0.05$) while maintaining similar training and test errors.
+Furthermore, to prove the framework is not merely overfitting to its own generative equations, we tested the engine against a generative model mismatch using a macroscopic Wilson-Cowan neural rate model (Section 3.6). Despite violations of the assumed internal physics (e.g., hard non-linear bounds, dense excitatory/inhibitory mixtures), the algorithm recovered the underlying topology with high accuracy.
+
+\begin{reviewercomment}
+Minor concerns:
+
+1. There are formatting issues in some section titles, with multiple sections labeled "A." (e.g., lines 211 and 268).
+
+2. The decision to treat kinetic parameters as fixed is not made clear until line 212 and should be stated earlier in the Methods.
+
+3. The claim at line 217 that GRN connectivity is sensitive to changes in other parameters is not adequately supported (Figure 2C gives some indirect hints but still cannot serve as direct support).
+
+4. Insufficient information is provided on the simulated cases, including model parameters and availability of the simulated data.
+\end{reviewercomment}
+
+All minor concerns have been addressed in the rewritten manuscript:
+\begin{itemize}
+    \item All formatting anomalies have been fixed. 
+    \item The assumption of fixed global kinetic parameters is explicitly stated when introducing the model, and theoretically justified in Section 3.1. 
+    \item The structural collapse claim is now empirically supported and visualized in Figure 3a. 
+    \item The generative parameters, numerical integration details, and model specifications are tabulated and explained in the newly added Section 5 (\textit{Materials and methods}).
+\end{itemize}
+
+\vspace{1em}
+\hrulefill
+
+\reviewer{Reviewer 2}
+
+\begin{reviewercomment}
+1) As commented above, the paper does not deal with real GRN, as could be interpreted from the title. Please change the title to one that really reflects the content of the paper, and modify the rest of the manuscript accordingly.
+\end{reviewercomment}
+
+We agree. We have changed the title to \textit{"Resolving Structural Uncertainty in Stochastic Dynamical Systems via Ensemble-Based Bayesian Inference"} to accurately reflect the mathematical generality of the framework. Throughout the revised manuscript, we emphasize its applicability to generic complex systems, macroscopic ecological networks, and neural populations.
+
+\begin{reviewercomment}
+2) Please explain what an SDE is in its first appearance (not on page 4).
+\end{reviewercomment}
+
+Stochastic Differential Equations (SDEs) are now explicitly defined upon their first mention in the Introduction.
+
+\begin{reviewercomment}
+3) You use at least three different notations for the same mathematical object, which is quite confusing: A = W = Theta. And maybe also w.
+
+4) When matrix A first appears, it is not clear if it can be symmetric or not. Later, only the “asymmetric” option seems possible, since otherwise the decomposition in Eq. (5) would not be possible. This is just an example, but in general, the paper is written in such a way that it unnecessarily forces the reader to try to discover things that simply should have been explicitly stated in the paper.
+\end{reviewercomment}
+
+The notation has been standardized throughout the manuscript. We now cleanly separate $\mathbf{W}$ (continuous interaction weights), $\mathbf{A}$ (the binary adjacency matrix denoting topology), and $\theta = \{\gamma, V, D\}$ (the global kinetic parameters). The new SBM prior naturally governs directed, asymmetric networks without any mathematical ambiguity.
+
+\begin{reviewercomment}
+5) In Eq. (6), the introduction of beta in this way breaks the interpretation of this equation as a consequence of Bayes' rule. I would understand that pi(Theta) could be written as pi(Theta, beta). Anyway, this parameter beta is introduced here and disappears for the rest of the paper. Why? How do you set its value? Which values have you used in the experimental part? Is this really needed?
+
+6) In Eq. (8) a P(Theta) appears in the place for the prior pi(Theta), or pi(Theta, beta). I’m totally confused; once again, new notations appear without explanation.
+
+10) In the definition of the prior for the feedback loops, it seems awkward to define N\_neg in a way that yields negative values, since what you want is to count the number of negative feedback loops. It seems more reasonable to add a minus sign before the lambda in the exponential and reverse the terms in the calculation of N\_neg. Moreover, in the current version, P(G) seems to be able to take values greater than one, in contradiction to the fact of representing a probability. Finally, once again, P(G) is a new unexplained notation, so add G to the set of different names for matrix A = W = w = Theta = G.
+\end{reviewercomment}
+
+These issues all stemmed from our previous, ad-hoc prior formulation. By replacing the entire prior framework with the non-parametric Minimum Description Length (MDL) formulation via \texttt{graph-tool} (Section 2.3), the confusing $\beta$ parameter, the conflicting $P(\Theta)$ notations, and the awkward $N_{neg}$ feedback loop heuristics have been entirely eliminated. 
+
+\begin{reviewercomment}
+7) In Section IV.A, you try to separate the inference of the dynamical parameters from the structure of the interactions. Instead of adding the dynamical parameters into the inference process, you just fix them (using a grid search), apply the inference method to the structure of the network, and then use the found likelihood to score the different values of the dynamical parameters. This seems a reasonable approach, but some questions arise: Have you tried both approaches (grid search and joint inference) to be sure that the grid search is the right solution? If so, the results should be reported as evidence for the benefits of this procedure. Additionally, in Figure 2c, you show a grid with a huge number of values for only two of the parameters, but there are more parameters. Have you fixed them to the real values? Or is the grid for the four parameters simultaneously? Finally, how do you fix the minimum and maximum values for the grid search? All the parameters are unbounded, so you may need to scan multiple orders of magnitude.
+\end{reviewercomment}
+
+We agreed with this assessment, and we no longer use a detached grid search to score kinetic parameters after structural inference. We implemented a unified block-coordinate optimization scheme (Section 2.3). The topology is sampled stochastically via MCMC sweeps, and the continuous kinetic parameters are deterministically optimized conditionally on the current topology using the Nelder-Mead algorithm. This integrates dynamic and structural inference, eliminating the need for rigid boundaries or large multi-dimensional parameter grids.
+
+\begin{reviewercomment}
+8) In Section VII.A (the first Materials and Methods), the content is impossible to understand: no references, too many undefined symbols (what are F\_i, gamma\_i, omega\_ij, etc.?), unjustified hypotheses (e.g., why F\_i is Lipschitz-continuous), undetailed deductions, etc. And most importantly: what are you trying to prove?
+\end{reviewercomment}
+
+We have rewritten and reorganized this mathematical content. The generative SDE model is introduced cleanly in Section 2.1, and the mathematical derivation of exact transition moments (via Ito's Isometry) was refactored and moved to the Supplementary Materials to ensure flow and readability in the main text. Furthermore, to explicitly prove the utility of this exact derivation, we added a new subsection (Section 3.3, Figure 3c) demonstrating that our Bayesian topology inference is robust to SDE discretization errors, directly comparing the exact transition moments against standard Euler-Maruyama approximations.
+
+\begin{reviewercomment}
+9) In the experiments section, you say “The specific choice of the parameters and the network topology is reported in the Materials and Methods section.” It is not reported. In fact, all the experiments are impossible to reproduce, since there are few details on them. Even the results are difficult to understand. What does the activity distribution in Figure 3a mean? I guess you refer to the values of x\_i, which were initially named states, not activities. In any case, they evolve in time, so do you plot the distribution of temporal values?
+\end{reviewercomment}
+
+We included a dedicated "Materials and methods" section (Section 5) detailing the exact parameters used (e.g., basal degradation rate $\gamma = 0.5$, noise $D = 0.02$, $\delta t = 0.01$). The figures have been overhauled and redrawn to clearly illustrate the new benchmarking results and the topological vs. non-topological distributions. 
+
+\begin{reviewercomment}
+11) Given that this work is basically to present a methodology to calculate something, I would expect that the code would be available as open source.
+\end{reviewercomment}
+
+A "Data and code accessibility" section was added at the end of the manuscript, providing a direct link to the open-source GitHub repository containing all MCMC engines and dataset generators.
+
+\vspace{2em}
+\noindent We believe these revisions have improved the rigor, scalability, and generality of the manuscript, directly addressing the reviewers' concerns. We look forward to your feedback on the revised manuscript.
+
+\end{document}
