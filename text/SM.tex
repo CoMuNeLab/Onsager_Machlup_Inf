@@ -54,7 +54,7 @@
 }
 
 \title{\textbf{Supplementary Information}\\[4pt]
-\Large A Probabilistic Ensemble-Based Bayesian Method for Mechanistic Inference of Complex Systems}
+\Large Resolving Structural Uncertainty in Stochastic Dynamical Systems via Ensemble-Based Bayesian Inference}
 \author{Francesco Zambelli, Valeria D'Andrea, Manlio De Domenico}
 \date{}
 
@@ -208,10 +208,10 @@ However, as dimensionality scaled ($N \to 100$), topological inference on ER net
 
 \begin{figure*}[h!]
     \centering
-    \includegraphics[width=\textwidth]{../papers_figures/Fig1_SM.pdf}
+    \includegraphics[width=\textwidth]{Fig1_SM.pdf}
     \caption{\textbf{Grid search performance on Erd\H{o}s-R\'enyi (ER) networks.} 
     \textbf{a.} Performance heatmaps as a function of the measurement interval $\Delta t$ and the number of sample pairs $M$ for an ER network of size $N=10$ ($p=0.15$) in the transient regime. 
-    \textbf{a.1} reports the F1-Score, showing topological recovery accuracy, while \textbf{a.2} reports the Weighted Mean Absolute Error (MAE), quantifying the reconstruction accuracy of the regulatory weights.
+    \textbf{a.1} reports the AUPRC, showing topological recovery accuracy, while \textbf{a.2} reports the Sperman correlation, quantifying the reconstruction accuracy of the regulatory weights.
     \textbf{b.} Scalability with edge density: Area Under the Precision-Recall Curve Ratio (AUPRC Ratio) as a function of the edge probability $p$ across network sizes $N \in \{10, 20, 50, 100\}$ at fixed sampling interval $\Delta t=0.05$. For small networks ($N \le 20$), intermediate densities ($p \approx 0.075\text{--}0.10$) maximize the performance relative to a random baseline, whereas for larger networks ($N=50, 100$), performance decreases with $p$ due to topological confounding from high average degrees ($k \approx pN$).
     \textbf{c.} Scaling of structural and parameter inference with sample size and temporal resolution for fixed edge probability $p=0.15$ in the transient regime across network sizes $N \in \{10, 20, 50, 100\}$.
     \textbf{c.1} and \textbf{c.2} show the AUPRC Ratio as a function of sample size $M$ (at fixed $\Delta t=0.05$) and measurement interval $\Delta t$ (at fixed $M=500$), respectively.
